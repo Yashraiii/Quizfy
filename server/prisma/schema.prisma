@@ -1,0 +1,172 @@
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Question Types
+enum QuestionType {
+  MCQ            // Single correct choice
+  MULTI_CORRECT  // Multiple correct choices
+  TRUE_FALSE     // True or False
+}
+
+enum QuizStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum SessionStatus {
+  LOBBY           // Waiting for players to enter 6-digit PIN
+  QUESTION_ACTIVE // Question countdown timer running
+  QUESTION_ENDED  // Time up, correct answer highlighted
+  LEADERBOARD     // Scoreboard / Top 5 players
+  FINISHED        // Quiz completed / Podium
+}
+
+// User (Quiz Creators / Hosts)
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  hashedPassword String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  quizzes        Quiz[]        @relation("QuizzesOwned")
+  questions      Question[]    @relation("QuestionsCreated")
+  sessionsHosted LiveSession[] @relation("SessionsHosted")
+}
+
+// Quiz Template
+model Quiz {
+  id          String     @id @default(uuid())
+  ownerId     String
+  owner       User       @relation("QuizzesOwned", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  status      QuizStatus @default(DRAFT)
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  quizQuestions QuizQuestion[]
+  liveSessions  LiveSession[]
+
+  @@index([ownerId])
+}
+
+// Question Model
+model Question {
+  id        String       @id @default(uuid())
+  creatorId String
+  creator   User         @relation("QuestionsCreated", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  text      String       // Question title / statement
+  type      QuestionType @default(MCQ)
+  timeLimit Int          @default(20)   // Time limit in seconds (e.g. 10, 20, 30)
+  points    Int          @default(1000) // Max speed points for this question
+
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  options       Option[]
+  quizQuestions QuizQuestion[]
+
+  @@index([creatorId])
+}
+
+// Option Choices for a Question
+model Option {
+  id         String   @id @default(uuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  text       String   // e.g., "Paris", "London"
+  isCorrect  Boolean  @default(false)
+
+  @@index([questionId])
+}
+
+// Join model linking Quiz to Questions with Order sequence
+model QuizQuestion {
+  quizId     String
+  quiz       Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  order      Int      // Question order in quiz (1, 2, 3...)
+
+  @@id([quizId, questionId])
+  @@index([quizId])
+}
+
+// Real-Time Live Session (Kahoot Game Room)
+model LiveSession {
+  id                   String        @id @default(uuid())
+
+  quizId               String
+  quiz                 Quiz          @relation(fields: [quizId], references: [id])
+
+  hostId               String
+  host                 User          @relation("SessionsHosted", fields: [hostId], references: [id])
+
+  roomCode             String        @unique // 6-digit Game PIN (e.g., "492018")
+  status               SessionStatus @default(LOBBY)
+  currentQuestionIndex Int           @default(0)
+
+  startedAt            DateTime?
+  endedAt              DateTime?
+  createdAt            DateTime      @default(now())
+
+  participants         Participant[]
+
+  @@index([hostId])
+  @@index([roomCode])
+}
+
+// Guest / User Participant in Live Session
+model Participant {
+  id          String      @id @default(uuid())
+
+  sessionId   String
+  session     LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  userId      String?     // Nullable for guest players
+  displayName String
+
+  score       Int         @default(0)
+  streak      Int         @default(0) // Consecutive correct answers counter
+
+  joinedAt    DateTime    @default(now())
+
+  answers     ParticipantAnswer[]
+
+  @@unique([sessionId, displayName])
+  @@index([sessionId])
+}
+
+// Real-time Answer Submissions per Player per Question
+model ParticipantAnswer {
+  id                String      @id @default(uuid())
+
+  participantId     String
+  participant       Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  questionId        String
+
+  selectedOptionIds String[]    // Options chosen by participant
+
+  isCorrect         Boolean
+  pointsAwarded     Int         // Calculated based on response speed
+  timeTakenMs       Int         // Speed in milliseconds
+
+  answeredAt        DateTime    @default(now())
+
+  @@unique([participantId, questionId])
+  @@index([participantId])
+}
