@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/client';
+
 const CreateQuiz = async (req:Request,res:Response)=>{
     try{
-        const {title,description,questions} = req.body;
+        const {title,description,questions,status} = req.body;
         const userId = req.user?.id;
         if(!userId){
             return res.status(401).json({message: "Unauthorized"});
@@ -12,6 +13,7 @@ const CreateQuiz = async (req:Request,res:Response)=>{
                 title,
                 description,
                 ownerId:userId,
+                status:status||"PUBLISHED",
                 quizQuestions:{
                     create:questions.map((question:any,index:number)=>({
                         order:index+1,
@@ -158,4 +160,75 @@ const DeleteQuizById = async(req:Request,res:Response)=>{
         })
     }
 }
-export {CreateQuiz,GetUserQuizzes,GetQuizById,DeleteQuizById}
+const UpdateQuiz = async(req:Request,res:Response)=>{
+    try{
+        const {id} = req.params;
+        const quizId = Array.isArray(id)?id[0]:id
+        const userId = req.user?.id;
+        if(!userId){
+            return res.status(500).json({
+                message:"unauthorized"
+            })
+        }
+        const{title,description,questions,status} = req.body
+        const existingQuiz = await prisma.quiz.findUnique({
+            where:{
+                id:quizId
+            }
+        })
+        if(!existingQuiz){
+            return res.status(404).json({
+                message:"Quiz not found"
+            })
+        }
+        if (existingQuiz.ownerId !== userId) {
+            return res.status(403).json({ message: "Forbidden" });
+        }
+
+        const updateQuiz = await prisma.$transaction(async(tx)=>{
+            await tx.quizQuestion.deleteMany({
+                where:{quizId}
+            })
+            return tx.quiz.update({
+                where:{
+                    id:quizId,
+                },
+                data:{
+                    title,
+                    description,
+                    status:status || "PUBLISHED",
+                    quizQuestions:{
+                        create:questions.map((q:any,index:number)=>({
+                            order:index+1,
+                            question:{
+                                create:{
+                                    text:q.text,
+                                    type:q.type ||"MCQ",
+                                    timeLimit:q.timeLimit,
+                                    points:q.points,
+                                    creatorId:userId,
+                                    options:{
+                                        create:q.options.map((opt:any)=>({
+                                            text:opt.text,
+                                            isCorrect:opt.isCorrect
+                                        }))
+                                    }
+                                }
+                            }
+                        }))
+                    }
+                }
+            })
+        });
+        res.status(200).json(updateQuiz)
+        
+
+    }
+    catch(error){
+        console.error(error)
+        res.status(500).json({
+            message:"Internal Server Error"
+        })
+    }
+}
+export {CreateQuiz,GetUserQuizzes,GetQuizById,DeleteQuizById,UpdateQuiz}

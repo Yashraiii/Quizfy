@@ -30,6 +30,7 @@ enum SessionStatus {
 // User (Quiz Creators / Hosts)
 model User {
   id             String   @id @default(uuid())
+  name           String
   email          String   @unique
   hashedPassword String
   createdAt      DateTime @default(now())
@@ -110,7 +111,7 @@ model LiveSession {
   id                   String        @id @default(uuid())
 
   quizId               String
-  quiz                 Quiz          @relation(fields: [quizId], references: [id])
+  quiz                 Quiz          @relation(fields: [quizId], references: [id],onDelete: Cascade)
 
   hostId               String
   host                 User          @relation("SessionsHosted", fields: [hostId], references: [id])

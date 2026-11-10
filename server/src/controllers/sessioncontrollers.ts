@@ -1,5 +1,6 @@
 import {Request, Response} from 'express';
 import { prisma } from '../config/client';
+import { nanoid } from 'nanoid';
 declare global {
   namespace Express {
     interface Request {
@@ -7,15 +8,10 @@ declare global {
     }
   }
 }
-const GAME_CODE_CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-const generateGameRoomCode = (length: number = 6): string => {
-    let result = '';
-    for (let i = 0; i < length; i++) {
-        const randomIndex = Math.floor(Math.random() * GAME_CODE_CHARS.length);
-        result += GAME_CODE_CHARS[randomIndex];
-    }
-    return result;
-};
+const generateGameRoomCode = async (nanoId: string) => {
+  const a = nanoId.slice(0, 3) + "-" + nanoId.slice(3, 6) + "-" + nanoId.slice(6, 9);
+  return a.toUpperCase();
+}
 const CreateSession = async(req:Request,res:Response)=>{
     try{
         const {quizId} = req.body;
@@ -34,7 +30,15 @@ const CreateSession = async(req:Request,res:Response)=>{
         if(!quiz){
             return res.status(404).json({message:'Quiz not found'});
         }
-        const roomCode = generateGameRoomCode(6);
+        const roomCode = await generateGameRoomCode(nanoid(12));
+        await prisma.quiz.update({
+            where:{
+                id:quizId
+            },
+            data:{
+                status:"PUBLISHED"
+            }
+        })
         const session = await prisma.liveSession.create({
             data:{
                 quizId,

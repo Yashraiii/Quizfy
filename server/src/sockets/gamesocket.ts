@@ -96,6 +96,7 @@ const InitializeWebSocketServer = (httpServer: HTTPServer) => {
                         //create a new participant in the database and add them to the room's players map
                         const participant = await prisma.participant.create({
                             data:{
+                                userId:payload.userId,
                                 sessionId:session.id,
                                 displayName:displayName
                             }
@@ -312,7 +313,7 @@ const finishQuestionAndAdvance = async (room: RoomState) => {
             displayName:p.displayName,
             score:p.score,
             streak:p.streak
-        })) // Top 5 players
+        }))
         broadcastToRoom(room,{
             type:'LEADERBOARD_UPDATE',
             payload:{
@@ -347,7 +348,6 @@ const finishGameAutomatically = async (room: RoomState) => {
     });
     const sortedPlayers = Array.from(room.players.values())
         .sort((a, b) => b.score - a.score)
-        .slice(0, 3)
         .map((p, index) => ({
             rank: index + 1,
             displayName: p.displayName,

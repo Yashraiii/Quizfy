@@ -2,9 +2,10 @@ import { Request, Response } from "express";
 import {prisma} from "../config/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { string } from "zod";
 const SignUp  = async (req: Request, res: Response) =>{
     try{
-        const {email,password} = req.body;
+        const {name,email,password} = req.body;
         const existingUser = await prisma.user.findUnique({
             where: { email },
         });
@@ -14,6 +15,7 @@ const SignUp  = async (req: Request, res: Response) =>{
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = await prisma.user.create({
             data: {
+                name,
                 email,
                 hashedPassword: hashedPassword,
             },

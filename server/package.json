@@ -34,8 +34,15 @@
     "express": "^5.2.1",
     "groq-sdk": "^1.5.0",
     "jsonwebtoken": "^9.0.3",
+    "nanoid": "^6.0.2",
     "pg": "^8.22.0",
     "ws": "^8.21.3",
     "zod": "^4.4.3"
+  },
+  "allowScripts": {
+    "@prisma/engines@7.9.1": true,
+    "bcrypt@6.0.0": true,
+    "esbuild@0.28.1": true,
+    "prisma@7.9.1": true
   }
 }
