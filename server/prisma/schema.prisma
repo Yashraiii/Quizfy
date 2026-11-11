@@ -124,50 +124,8 @@ model LiveSession {
   endedAt              DateTime?
   createdAt            DateTime      @default(now())
 
-  participants         Participant[]
-
   @@index([hostId])
   @@index([roomCode])
 }
 
-// Guest / User Participant in Live Session
-model Participant {
-  id          String      @id @default(uuid())
 
-  sessionId   String
-  session     LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  userId      String?     // Nullable for guest players
-  displayName String
-
-  score       Int         @default(0)
-  streak      Int         @default(0) // Consecutive correct answers counter
-
-  joinedAt    DateTime    @default(now())
-
-  answers     ParticipantAnswer[]
-
-  @@unique([sessionId, displayName])
-  @@index([sessionId])
-}
-
-// Real-time Answer Submissions per Player per Question
-model ParticipantAnswer {
-  id                String      @id @default(uuid())
-
-  participantId     String
-  participant       Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
-
-  questionId        String
-
-  selectedOptionIds String[]    // Options chosen by participant
-
-  isCorrect         Boolean
-  pointsAwarded     Int         // Calculated based on response speed
-  timeTakenMs       Int         // Speed in milliseconds
-
-  answeredAt        DateTime    @default(now())
-
-  @@unique([participantId, questionId])
-  @@index([participantId])
-}
