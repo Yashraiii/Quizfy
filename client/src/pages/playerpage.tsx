@@ -24,6 +24,7 @@ export const PlayerPage = () => {
         stage,
         currentQuestion,
         correctOptionIds,
+        leaderboard,
         myResult,
         hasAnswered,
         gameOverPodium,
@@ -187,19 +188,19 @@ export const PlayerPage = () => {
             {/* STAGE 2: ACTIVE QUESTION                                                  */}
             {/* ========================================================================= */}
             {hasJoined && stage === "QUESTION" && currentQuestion && (
-                <div className="flex-1 flex flex-col justify-between max-w-lg mx-auto w-full py-4">
+                <div className="flex-1 flex flex-col justify-between max-w-3xl sm:max-w-4xl mx-auto w-full py-4 sm:py-6">
                     {/* Top Status & Live Countdown Bar */}
-                    <div className="text-center mb-4 space-y-2">
-                        <div className="flex justify-between items-center px-1">
+                    <div className="text-center mb-6 space-y-2">
+                        <div className="flex justify-between items-center px-1 mb-2">
                             <span className="text-xs font-mono uppercase text-neutral-500">
-                                Question {currentQuestion.questionIndex}
+                                Question {currentQuestion.questionIndex} · {currentQuestion.type}
                             </span>
-                            <span className={`text-xs font-mono font-semibold px-2 py-0.5 rounded border ${
+                            <span className={`text-xs font-mono font-semibold px-2.5 py-1 rounded-lg border ${
                                 timeLeft <= 5
                                     ? "border-red-500/40 text-red-400 bg-red-500/10"
-                                    : "border-white/8 text-neutral-400 bg-white/2"
+                                    : "border-white/8 text-neutral-300 bg-white/2"
                             }`}>
-                                {timeLeft}s
+                                {timeLeft}s remaining
                             </span>
                         </div>
 
@@ -215,29 +216,31 @@ export const PlayerPage = () => {
                             />
                         </div>
 
-                        <h3 className="text-sm font-semibold text-neutral-200 mt-2 line-clamp-2">
+                        {/* Bigger Question Text matching Host */}
+                        <h2 className="text-2xl sm:text-3xl font-bold text-white pt-2 leading-snug">
                             {currentQuestion.text}
-                        </h3>
+                        </h2>
                     </div>
 
                     {/* Waiting or Answer Options */}
                     {hasAnswered ? (
                         <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
-                            <div className="w-10 h-10 rounded-full border border-white/10 bg-white/3 flex items-center justify-center text-sm mb-3">
+                            <div className="w-12 h-12 rounded-full border border-white/10 bg-white/3 flex items-center justify-center text-base mb-3 text-white">
                                 ✓
                             </div>
-                            <h3 className="text-sm font-semibold text-white mb-1">Answer submitted</h3>
-                            <p className="text-neutral-600 text-xs">Waiting for timer or others...</p>
+                            <h3 className="text-base font-bold text-white mb-1">Answer submitted</h3>
+                            <p className="text-neutral-500 text-xs font-mono">Waiting for timer or others...</p>
                         </div>
                     ) : (
                         <div className="flex-1 flex flex-col justify-between py-2">
-                            <p className="text-[11px] font-mono text-neutral-400 mb-2.5 text-center uppercase tracking-wider">
+                            <p className="text-xs font-mono text-neutral-400 mb-3 text-center uppercase tracking-wider">
                                 {isMultiCorrect
                                     ? "Multi-Select · Select all that apply, then submit"
                                     : "Select your answer, then submit"}
                             </p>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 items-stretch min-h-60">
+                            {/* 4 Options Grid matching Host Page */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 flex-1 items-stretch min-h-60">
                                 {currentQuestion.options.map((opt, idx) => {
                                     const isSelected = selectedOptionIds.includes(opt.id);
                                     return (
@@ -245,17 +248,17 @@ export const PlayerPage = () => {
                                             key={opt.id}
                                             type="button"
                                             onClick={() => handlePickOption(opt.id)}
-                                            className={`rounded-2xl border p-5 flex flex-col justify-between text-left transition duration-150 cursor-pointer ${
+                                            className={`p-5 sm:p-6 rounded-2xl border flex flex-col justify-between text-left transition duration-150 cursor-pointer shadow-sm ${
                                                 isSelected
-                                                    ? "bg-white/12 border-white/40 shadow-sm"
-                                                    : "bg-white/3 border border-white/6 hover:bg-white/6 hover:border-white/15"
+                                                    ? "bg-white/12 border-white/50 ring-1 ring-white/20 shadow-md"
+                                                    : "bg-white/3 border-white/8 hover:bg-white/6 hover:border-white/20"
                                             }`}
                                         >
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="font-mono text-xs text-neutral-500 font-bold">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className="font-mono text-sm font-bold text-neutral-400">
                                                     {OPTION_LETTERS[idx % 4]}
                                                 </span>
-                                                <span className={`w-4 h-4 ${isMultiCorrect ? "rounded-md" : "rounded-full"} border flex items-center justify-center text-[10px] ${
+                                                <span className={`w-5 h-5 ${isMultiCorrect ? "rounded-md" : "rounded-full"} border flex items-center justify-center text-xs ${
                                                     isSelected
                                                         ? "bg-white text-black border-white font-bold"
                                                         : "border-neutral-600 text-transparent"
@@ -263,7 +266,7 @@ export const PlayerPage = () => {
                                                     ✓
                                                 </span>
                                             </div>
-                                            <span className="font-medium text-sm text-neutral-200 line-clamp-3">
+                                            <span className="text-base sm:text-lg font-semibold text-neutral-100 line-clamp-3">
                                                 {opt.text}
                                             </span>
                                         </button>
@@ -276,7 +279,7 @@ export const PlayerPage = () => {
                                 type="button"
                                 onClick={handleSubmitAnswer}
                                 disabled={selectedOptionIds.length === 0}
-                                className="relative group/btn mt-4 w-full py-3 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-40 text-neutral-200 font-semibold text-xs rounded-xl border border-white/8 transition cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
+                                className="relative group/btn mt-5 w-full py-3.5 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-40 text-neutral-200 font-semibold text-sm rounded-xl border border-white/8 transition cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
                             >
                                 {isMultiCorrect
                                     ? `Submit Answer (${selectedOptionIds.length} selected) →`
@@ -340,22 +343,84 @@ export const PlayerPage = () => {
             {/* STAGE 4: LEADERBOARD VIEW                                                 */}
             {/* ========================================================================= */}
             {hasJoined && stage === "LEADERBOARD" && (
-                <div className="flex-1 flex flex-col items-center justify-center text-center max-w-xs mx-auto py-8">
-                    <p className="text-xs font-mono text-neutral-600 uppercase tracking-wider mb-2">Scoreboard</p>
-                    <p className="text-neutral-400 text-xs mb-6">Look up at the main screen for standings</p>
+                <div className="flex-1 flex flex-col items-center justify-center max-w-md mx-auto w-full py-6">
+                    <div className="text-center mb-5">
+                        <span className="text-xs font-mono uppercase tracking-widest text-neutral-500">Live Standings</span>
+                        <h2 className="text-xl sm:text-2xl font-bold text-white mt-1">Scoreboard</h2>
+                    </div>
+
+                    {/* Player's personal score banner */}
                     {myResult && (
-                        <div className="rounded-2xl border border-white/6 bg-white/2 p-5 w-full mb-6">
-                            <span className="text-[10px] text-neutral-600 uppercase tracking-widest block mb-1">
-                                Your Total Score
-                            </span>
-                            <p className="text-2xl font-mono font-bold text-neutral-100">
+                        <div className="w-full mb-4 px-4 py-3 rounded-2xl border border-indigo-500/25 bg-indigo-500/10 flex items-center justify-between shadow-sm">
+                            <div className="flex items-center space-x-2.5">
+                                <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                                <span className="text-xs font-semibold text-indigo-200">
+                                    You ({displayName})
+                                </span>
+                            </div>
+                            <span className="font-mono text-sm font-bold text-white">
                                 {myResult.totalScore.toLocaleString()} pts
-                            </p>
+                            </span>
                         </div>
                     )}
 
+                    {/* Leaderboard Player List matching Host Page */}
+                    <div className="w-full space-y-2 mb-6">
+                        {leaderboard.length > 0 ? (
+                            leaderboard.map((player) => {
+                                const isMe = player.displayName === displayName;
+                                return (
+                                    <div
+                                        key={player.rank}
+                                        className={`rounded-xl border p-3.5 sm:p-4 flex justify-between items-center transition ${
+                                            isMe
+                                                ? "bg-indigo-500/15 border-indigo-500/40 shadow-sm"
+                                                : "bg-white/3 border-white/6"
+                                        }`}
+                                    >
+                                        <div className="flex items-center space-x-3">
+                                            <span className={`w-6 h-6 rounded-md border flex items-center justify-center font-mono text-xs ${
+                                                player.rank === 1
+                                                    ? "bg-amber-400/10 border-amber-400/30 text-amber-300 font-bold"
+                                                    : player.rank === 2
+                                                    ? "bg-slate-300/10 border-slate-300/30 text-slate-300 font-bold"
+                                                    : player.rank === 3
+                                                    ? "bg-amber-700/10 border-amber-700/30 text-amber-500 font-bold"
+                                                    : "bg-white/5 border-white/8 text-neutral-400"
+                                            }`}>
+                                                #{player.rank}
+                                            </span>
+                                            <div className="flex items-center space-x-2">
+                                                <span className={`font-semibold text-sm ${isMe ? "text-indigo-200 font-bold" : "text-neutral-200"}`}>
+                                                    {player.displayName}
+                                                </span>
+                                                {isMe && (
+                                                    <span className="text-[10px] font-mono bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.2 rounded">
+                                                        You
+                                                    </span>
+                                                )}
+                                                {player.streak > 1 && (
+                                                    <span className="text-[10px] font-mono border border-white/8 text-neutral-400 px-2 py-0.5 rounded-full">
+                                                        {player.streak} 🔥
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <span className="text-sm font-mono font-bold text-neutral-100">
+                                            {player.score.toLocaleString()} pts
+                                        </span>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="text-neutral-500 text-xs py-4 text-center font-mono">
+                                Loading scores...
+                            </div>
+                        )}
+                    </div>
+
                     {/* Loading Next Question Indicator */}
-                    <div className="mt-2 flex items-center justify-center gap-2 text-xs font-mono text-neutral-400">
+                    <div className="flex items-center justify-center gap-2 text-xs font-mono text-neutral-400">
                         <span className="relative flex h-2 w-2">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
