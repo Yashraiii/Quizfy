@@ -26,17 +26,13 @@ export const AiQuizModal = ({ isOpen, onClose, onQuizCreated }: AiQuizModalProps
         setLoading(true);
 
         try {
-            // Hitting your Groq backend endpoint
             const res = await api.post("/api/aiquiz/generate", {
                 topic: topic.trim(),
                 numberOfQuestions: Number(numberOfQuestions),
                 questionType,
             });
 
-            // Pass the newly created quiz back to Dashboard to refresh the list
             onQuizCreated(res.data);
-            
-            // Reset and close modal
             setTopic("");
             onClose();
         } catch (err: any) {
@@ -50,18 +46,22 @@ export const AiQuizModal = ({ isOpen, onClose, onQuizCreated }: AiQuizModalProps
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl shadow-purple-500/10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 antialiased">
+            <div className="w-full max-w-md bg-[#0a0a0a] border border-white/8 rounded-2xl p-6 shadow-2xl shadow-black relative">
                 {/* Header */}
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center space-x-2">
-                        <span className="text-xl">✨</span>
-                        <h2 className="text-xl font-bold text-white">Generate Quiz with AI</h2>
+                <div className="flex justify-between items-center mb-6 pb-3 border-b border-white/5">
+                    <div>
+                        <h2 className="text-base font-semibold text-neutral-100">
+                            Generate Quiz with AI
+                        </h2>
+                        <p className="text-xs text-neutral-500 mt-0.5">
+                            Powered by Groq LLM
+                        </p>
                     </div>
                     <button
                         onClick={onClose}
                         disabled={loading}
-                        className="text-slate-400 hover:text-white transition text-lg cursor-pointer"
+                        className="text-neutral-500 hover:text-neutral-300 transition text-sm cursor-pointer"
                     >
                         ✕
                     </button>
@@ -69,17 +69,17 @@ export const AiQuizModal = ({ isOpen, onClose, onQuizCreated }: AiQuizModalProps
 
                 {/* Error Banner */}
                 {error && (
-                    <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-sm">
+                    <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/[0.07] px-3.5 py-2.5 text-xs text-red-400">
                         {error}
                     </div>
                 )}
 
                 {/* Form */}
                 <form onSubmit={handleAiQuiz} className="space-y-4">
-                    {/* Topic Input */}
+                    {/* Topic */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                            Quiz Topic
+                        <label className="block text-xs font-medium text-neutral-400 mb-1.5">
+                            Topic
                         </label>
                         <input
                             type="text"
@@ -87,15 +87,15 @@ export const AiQuizModal = ({ isOpen, onClose, onQuizCreated }: AiQuizModalProps
                             disabled={loading}
                             value={topic}
                             onChange={(e) => setTopic(e.target.value)}
-                            placeholder="e.g. JavaScript Async/Await, World History"
-                            className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition text-sm"
+                            placeholder="e.g. Modern JavaScript, World Geography"
+                            className="w-full h-10 bg-zinc-900 border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-white/20 transition"
                         />
                     </div>
 
-                    {/* Number of Questions */}
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Question Count & Type */}
+                    <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                            <label className="block text-xs font-medium text-neutral-400 mb-1.5">
                                 Questions
                             </label>
                             <input
@@ -105,35 +105,34 @@ export const AiQuizModal = ({ isOpen, onClose, onQuizCreated }: AiQuizModalProps
                                 value={numberOfQuestions}
                                 disabled={loading}
                                 onChange={(e) => setNumberOfQuestions(Number(e.target.value))}
-                                className="w-full px-3 py-2.5 bg-slate-800/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition text-sm"
+                                className="w-full h-9 bg-zinc-900 border border-white/8 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-white/20 transition"
                             />
                         </div>
 
-                        {/* Question Type */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                                Type
+                            <label className="block text-xs font-medium text-neutral-400 mb-1.5">
+                                Question Type
                             </label>
                             <select
                                 value={questionType}
                                 disabled={loading}
                                 onChange={(e) => setQuestionType(e.target.value)}
-                                className="w-full px-3 py-2.5 bg-slate-800/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition text-sm"
+                                className="w-full h-9 bg-zinc-900 border border-white/8 rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 focus:outline-none focus:border-white/20 transition cursor-pointer"
                             >
                                 <option value="MCQ">Multiple Choice</option>
                                 <option value="TRUE_FALSE">True / False</option>
-                                <option value="MULTI_CORRECT">Multi Correct</option>
+                                <option value="MULTI_CORRECT">Multi-Select</option>
                             </select>
                         </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-800 mt-6">
+                    <div className="flex items-center justify-end space-x-2.5 pt-4 border-t border-white/5 mt-6">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={loading}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-white transition"
+                            className="px-3.5 py-2 text-xs font-medium text-neutral-500 hover:text-neutral-300 transition cursor-pointer"
                         >
                             Cancel
                         </button>
@@ -141,18 +140,10 @@ export const AiQuizModal = ({ isOpen, onClose, onQuizCreated }: AiQuizModalProps
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-5 py-2.5 bg-linear-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white font-medium rounded-xl shadow-lg shadow-purple-600/30 transition text-sm flex items-center space-x-2 cursor-pointer"
+                            className="relative group/btn px-5 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 text-neutral-200 font-semibold text-xs rounded-xl border border-white/8 transition cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
                         >
-                            {loading ? (
-                                <>
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    <span>Generating...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <span>✨ Generate</span>
-                                </>
-                            )}
+                            {loading ? "Generating..." : "Generate Quiz →"}
+                            <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-linear-to-r from-transparent via-neutral-500 to-transparent" />
                         </button>
                     </div>
                 </form>

@@ -56,47 +56,47 @@ export const QuizDetailsModal = ({
     if (!quizId) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className="w-full max-w-2xl max-h-[85vh] bg-slate-900 border border-slate-800 rounded-2xl flex flex-col shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 antialiased">
+            <div className="w-full max-w-xl max-h-[85vh] bg-[#0a0a0a] border border-white/8 rounded-2xl flex flex-col shadow-2xl overflow-hidden">
                 {/* Header */}
-                <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
+                <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/1">
                     <div>
-                        <h2 className="text-xl font-bold text-white">
-                            {quiz?.title || "Quiz Preview"}
+                        <h2 className="text-sm font-semibold text-neutral-100">
+                            {quiz?.title || "Quiz Questions"}
                         </h2>
-                        <p className="text-xs text-slate-400 mt-1">
+                        <p className="text-[11px] font-mono text-neutral-500 mt-0.5">
                             {quiz?.quizQuestions?.length || 0} Questions Total
                         </p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-slate-400 hover:text-white text-lg cursor-pointer"
+                        className="text-neutral-500 hover:text-neutral-300 text-sm cursor-pointer"
                     >
                         ✕
                     </button>
                 </div>
 
                 {/* Questions List */}
-                <div className="p-6 overflow-y-auto space-y-6">
+                <div className="p-5 overflow-y-auto space-y-4">
                     {loading ? (
-                        <div className="text-center py-10 text-slate-400">
+                        <div className="text-center py-10 text-neutral-500 text-xs font-mono">
                             Loading questions...
                         </div>
                     ) : (
                         quiz?.quizQuestions.map(({ order, question }) => (
                             <div
                                 key={order}
-                                className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4"
+                                className="rounded-xl border border-white/6 bg-white/2 p-4"
                             >
-                                <div className="flex justify-between items-start mb-3">
-                                    <h4 className="font-semibold text-white text-sm">
-                                        <span className="text-indigo-400 font-bold mr-2">
+                                <div className="flex justify-between items-start gap-2 mb-2.5">
+                                    <h4 className="font-medium text-neutral-200 text-xs leading-snug">
+                                        <span className="font-mono text-neutral-500 font-semibold mr-1.5">
                                             Q{order}.
                                         </span>
                                         {question.text}
                                     </h4>
-                                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-400">
-                                        ⏱️ {question.timeLimit}s
+                                    <span className="text-[10px] font-mono text-neutral-500 shrink-0 border border-white/6 px-2 py-0.5 rounded">
+                                        {question.timeLimit}s
                                     </span>
                                 </div>
 
@@ -105,17 +105,15 @@ export const QuizDetailsModal = ({
                                     {question.options.map((opt) => (
                                         <div
                                             key={opt.id}
-                                            className={`px-3 py-2 rounded-lg text-xs font-medium border flex justify-between items-center ${
+                                            className={`px-3 py-1.5 rounded-lg border text-xs flex items-center justify-between ${
                                                 opt.isCorrect
-                                                    ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300"
-                                                    : "bg-slate-900 border-slate-800 text-slate-400"
+                                                    ? "bg-white/6 border-white/20 text-neutral-100 font-medium"
+                                                    : "bg-white/1 border-white/4 text-neutral-500"
                                             }`}
                                         >
-                                            <span>{opt.text}</span>
+                                            <span className="truncate">{opt.text}</span>
                                             {opt.isCorrect && (
-                                                <span className="text-emerald-400 font-bold">
-                                                    ✓
-                                                </span>
+                                                <span className="font-bold text-white ml-1">✓</span>
                                             )}
                                         </div>
                                     ))}
@@ -126,10 +124,10 @@ export const QuizDetailsModal = ({
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-slate-800 flex justify-end bg-slate-900/60">
+                <div className="p-4 border-t border-white/5 flex justify-end bg-white/1">
                     <button
                         onClick={onClose}
-                        className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-xl transition cursor-pointer"
+                        className="px-4 py-1.5 text-xs font-medium text-neutral-400 hover:text-neutral-200 bg-white/4 hover:bg-white/8 border border-white/8 rounded-xl transition cursor-pointer"
                     >
                         Close
                     </button>

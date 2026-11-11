@@ -15,12 +15,7 @@ interface Question {
     options: Option[];
 }
 
-const COLOR_BADGES = [
-    { label: "Red 🔺", bg: "border-red-500/50 bg-red-500/10 text-red-400" },
-    { label: "Blue 🔷", bg: "border-blue-500/50 bg-blue-500/10 text-blue-400" },
-    { label: "Yellow 🟡", bg: "border-amber-500/50 bg-amber-500/10 text-amber-400" },
-    { label: "Green 🟩", bg: "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" },
-];
+const OPTION_LETTERS = ["A", "B", "C", "D"];
 
 export const Createquiz = () => {
     const navigate = useNavigate();
@@ -97,14 +92,12 @@ export const Createquiz = () => {
 
     // 2. Debounced Auto-Save as DRAFT in Background
     useEffect(() => {
-        // Don't auto-save while fetching existing quiz or if title is empty
         if (isInitialLoad.current || !title.trim()) return;
 
         setSaveStatus("SAVING");
         const timer = setTimeout(async () => {
             try {
                 if (activeQuizId) {
-                    // Update existing draft
                     await api.put(`/api/quiz/${activeQuizId}`, {
                         title: title.trim(),
                         description: description.trim() || null,
@@ -113,7 +106,6 @@ export const Createquiz = () => {
                     });
                     setSaveStatus("SAVED");
                 } else {
-                    // Create new draft in database
                     const res = await api.post("/api/quiz/create", {
                         title: title.trim(),
                         description: description.trim() || null,
@@ -121,7 +113,6 @@ export const Createquiz = () => {
                         status: "DRAFT",
                     });
                     setActiveQuizId(res.data.id);
-                    // Update browser URL silently to edit mode so refreshes won't duplicate
                     window.history.replaceState(null, "", `/quiz/edit/${res.data.id}`);
                     setSaveStatus("SAVED");
                 }
@@ -129,12 +120,11 @@ export const Createquiz = () => {
                 console.error("Auto-save failed:", err);
                 setSaveStatus("ERROR");
             }
-        }, 1500); // 1.5 second debounce
+        }, 1500);
 
         return () => clearTimeout(timer);
     }, [title, description, questions, activeQuizId]);
 
-    // Add a new question template
     const handleAddQuestion = () => {
         setQuestions((prev) => [
             ...prev,
@@ -153,7 +143,6 @@ export const Createquiz = () => {
         ]);
     };
 
-    // Remove a question
     const handleRemoveQuestion = (qIndex: number) => {
         if (questions.length <= 1) {
             alert("A quiz must have at least 1 question.");
@@ -162,7 +151,6 @@ export const Createquiz = () => {
         setQuestions((prev) => prev.filter((_, idx) => idx !== qIndex));
     };
 
-    // Update question metadata
     const handleUpdateQuestion = (qIndex: number, field: keyof Question, value: any) => {
         setQuestions((prev) => {
             const updated = [...prev];
@@ -187,7 +175,6 @@ export const Createquiz = () => {
         });
     };
 
-    // Update option text
     const handleUpdateOptionText = (qIndex: number, optIndex: number, text: string) => {
         setQuestions((prev) => {
             const updated = [...prev];
@@ -198,7 +185,6 @@ export const Createquiz = () => {
         });
     };
 
-    // Toggle correct answer
     const handleToggleCorrectOption = (qIndex: number, optIndex: number) => {
         setQuestions((prev) => {
             const updated = [...prev];
@@ -214,7 +200,6 @@ export const Createquiz = () => {
         });
     };
 
-    // 3. Final Publish Button (Validates & saves as PUBLISHED)
     const handlePublish = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
@@ -223,7 +208,6 @@ export const Createquiz = () => {
             return setError("Please provide a Quiz title.");
         }
 
-        // Validate each question before publishing
         for (let i = 0; i < questions.length; i++) {
             const q = questions[i];
             if (!q.text.trim()) {
@@ -271,47 +255,33 @@ export const Createquiz = () => {
 
     if (fetchingQuiz) {
         return (
-            <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+            <div className="min-h-screen bg-[#080808] text-white flex items-center justify-center">
                 <div className="text-center">
-                    <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                    <p className="text-slate-400 text-sm">Loading quiz details...</p>
+                    <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-neutral-500 text-xs font-medium">Loading quiz...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
+        <div className="min-h-screen bg-transparent text-neutral-100 antialiased pb-24">
             {/* Header Navbar */}
-            <div className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-20 px-6 py-4 flex justify-between items-center">
+            <div className="sticky top-0 z-20 border-b border-white/5 bg-[#080808]/85 backdrop-blur-xl px-6 py-3.5 flex justify-between items-center">
                 <div className="flex items-center space-x-4">
                     <button
                         onClick={() => navigate("/dashboard")}
-                        className="text-slate-400 hover:text-white text-sm flex items-center space-x-1 cursor-pointer"
+                        className="text-neutral-500 hover:text-neutral-200 text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
                     >
-                        <span>← Back to Dashboard</span>
+                        <span>← Dashboard</span>
                     </button>
 
-                    {/* Auto-Save Status Pill */}
-                    <div className="text-xs hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60">
-                        {saveStatus === "SAVING" && (
-                            <span className="text-amber-400 flex items-center space-x-1 font-medium">
-                                <span className="animate-spin">🔄</span>
-                                <span>Saving draft...</span>
-                            </span>
-                        )}
-                        {saveStatus === "SAVED" && (
-                            <span className="text-emerald-400 flex items-center space-x-1 font-medium">
-                                <span>☁️</span>
-                                <span>Draft saved</span>
-                            </span>
-                        )}
-                        {saveStatus === "ERROR" && (
-                            <span className="text-red-400 font-medium">⚠️ Auto-save failed</span>
-                        )}
-                        {saveStatus === "IDLE" && (
-                            <span className="text-slate-400">📝 Auto-save ready</span>
-                        )}
+                    {/* Auto-Save Status */}
+                    <div className="text-[11px] font-medium text-neutral-500 flex items-center gap-1.5 border border-white/6 rounded-full px-2.5 py-0.5">
+                        {saveStatus === "SAVING" && <span className="text-neutral-400">Saving draft...</span>}
+                        {saveStatus === "SAVED" && <span className="text-neutral-300">Draft saved</span>}
+                        {saveStatus === "ERROR" && <span className="text-red-400">Auto-save error</span>}
+                        {saveStatus === "IDLE" && <span>Ready</span>}
                     </div>
                 </div>
 
@@ -319,34 +289,28 @@ export const Createquiz = () => {
                     <button
                         onClick={handlePublish}
                         disabled={loading}
-                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold rounded-xl text-sm shadow-lg shadow-indigo-600/30 transition cursor-pointer flex items-center space-x-1.5"
+                        className="relative group/btn text-xs font-semibold text-neutral-200 bg-neutral-800 hover:bg-white hover:text-black border border-white/8ded-lg px-3 py-1.5 transition duration-200 disabled:opacity-50 cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
                     >
-                        {loading ? (
-                            <span>Publishing...</span>
-                        ) : (
-                            <>
-                                <span>🚀</span>
-                                <span>Publish Quiz</span>
-                            </>
-                        )}
+                        {loading ? "Publishing..." : "Publish Quiz"}
+                        <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-linear-to-r from-transparent via-neutral-500 to-transparent" />
                     </button>
                 </div>
             </div>
 
-            <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-8">
+            <main className="max-w-3xl mx-auto px-4 sm:px-6 pt-8">
                 {/* Error Banner */}
                 {error && (
-                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-sm">
+                    <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/[0.07] px-4 py-3 text-xs text-red-400">
                         {error}
                     </div>
                 )}
 
-                {/* Quiz Info Header Card */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8 shadow-xl">
-                    <h2 className="text-xl font-bold text-white mb-4">Quiz Details</h2>
+                {/* Quiz Info Card */}
+                <div className="rounded-2xl border border-white/6 bg-white/2 p-6 mb-8 shadow-sm">
+                    <h2 className="text-sm font-semibold text-neutral-200 mb-4">Quiz Details</h2>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                            <label className="block text-xs font-medium text-neutral-400 mb-1.5">
                                 Quiz Title *
                             </label>
                             <input
@@ -354,35 +318,35 @@ export const Createquiz = () => {
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                                 placeholder="e.g. Modern Web Development Fundamentals"
-                                className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm font-medium"
+                                className="w-full h-10 bg-zinc-900 border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-white/20 transition"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                            <label className="block text-xs font-medium text-neutral-400 mb-1.5">
                                 Description (Optional)
                             </label>
                             <textarea
                                 rows={2}
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Brief summary of what this quiz covers..."
-                                className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm"
+                                placeholder="Brief overview of what this quiz covers..."
+                                className="w-full bg-zinc-900 border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-white/20 transition resize-none"
                             />
                         </div>
                     </div>
                 </div>
 
                 {/* Questions Section */}
-                <div className="space-y-6">
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-bold text-white">
+                <div className="space-y-5">
+                    <div className="flex justify-between items-center mb-2">
+                        <h2 className="text-sm font-semibold text-neutral-200">
                             Questions ({questions.length})
                         </h2>
                         <button
                             type="button"
                             onClick={handleAddQuestion}
-                            className="px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-xl text-sm font-medium transition cursor-pointer"
-                        >
+                            className="relative group/btn text-xs font-semibold text-neutral-200 bg-neutral-800 hover:bg-white hover:text-black border border-white/8 rounded-lg px-3 py-1.5 transition duration-200 disabled:opacity-50 cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
+                    >
                             + Add Question
                         </button>
                     </div>
@@ -390,179 +354,158 @@ export const Createquiz = () => {
                     {questions.map((q, qIndex) => (
                         <div
                             key={qIndex}
-                            className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative"
+                            className="rounded-2xl border border-white/6 bg-white/2 p-6 transition-all"
                         >
-                            {/* Question Controls Header */}
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-4 border-b border-slate-800">
-                                <span className="font-bold text-indigo-400 text-sm">
-                                    Question {qIndex + 1}
+                            {/* Controls Header */}
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b border-white/5">
+                                <span className="font-mono text-xs font-semibold text-neutral-400">
+                                    Q{qIndex + 1}
                                 </span>
 
-                                <div className="flex flex-wrap items-center gap-2.5">
-                                    {/* 1. Question Type Selector */}
-                                    <div className="flex items-center space-x-1">
-                                        <span className="text-[11px] text-slate-400">Type:</span>
-                                        <select
-                                            value={q.type}
-                                            onChange={(e) =>
-                                                handleUpdateQuestion(qIndex, "type", e.target.value)
-                                            }
-                                            className="px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                        >
-                                            <option value="MCQ">Multiple Choice</option>
-                                            <option value="TRUE_FALSE">True / False</option>
-                                            <option value="MULTI_CORRECT">Multi Correct</option>
-                                        </select>
-                                    </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {/* Type */}
+                                    <select
+                                        value={q.type}
+                                        onChange={(e) =>
+                                            handleUpdateQuestion(qIndex, "type", e.target.value)
+                                        }
+                                        className="bg-zinc-900 border border-white/8 rounded-md px-2.5 py-1 text-xs text-neutral-300 focus:outline-none cursor-pointer"
+                                    >
+                                        <option value="MCQ">Multiple Choice</option>
+                                        <option value="TRUE_FALSE">True / False</option>
+                                        <option value="MULTI_CORRECT">Multi-Select</option>
+                                    </select>
 
-                                    {/* 2. Time Limit Selector */}
-                                    <div className="flex items-center space-x-1">
-                                        <span className="text-[11px] text-slate-400">Time:</span>
-                                        <select
-                                            value={q.timeLimit}
-                                            onChange={(e) =>
-                                                handleUpdateQuestion(
-                                                    qIndex,
-                                                    "timeLimit",
-                                                    Number(e.target.value)
-                                                )
-                                            }
-                                            className="px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                        >
-                                            <option value={5}>⏱️ 5 sec</option>
-                                            <option value={10}>⏱️ 10 sec</option>
-                                            <option value={20}>⏱️ 20 sec</option>
-                                            <option value={30}>⏱️ 30 sec</option>
-                                            <option value={60}>⏱️ 1 min</option>
-                                            <option value={90}>⏱️ 1.5 min</option>
-                                            <option value={120}>⏱️ 2 min</option>
-                                        </select>
-                                    </div>
+                                    {/* Time */}
+                                    <select
+                                        value={q.timeLimit}
+                                        onChange={(e) =>
+                                            handleUpdateQuestion(
+                                                qIndex,
+                                                "timeLimit",
+                                                Number(e.target.value)
+                                            )
+                                        }
+                                        className="bg-zinc-900 border border-white/8 rounded-md px-2.5 py-1 text-xs text-neutral-300 focus:outline-none cursor-pointer"
+                                    >
+                                        <option value={5}>5 sec</option>
+                                        <option value={10}>10 sec</option>
+                                        <option value={20}>20 sec</option>
+                                        <option value={30}>30 sec</option>
+                                        <option value={60}>60 sec</option>
+                                        <option value={120}>120 sec</option>
+                                    </select>
 
-                                    {/* 3. Points Selector */}
-                                    <div className="flex items-center space-x-1">
-                                        <span className="text-[11px] text-slate-400">Points:</span>
-                                        <select
-                                            value={q.points}
-                                            onChange={(e) =>
-                                                handleUpdateQuestion(
-                                                    qIndex,
-                                                    "points",
-                                                    Number(e.target.value)
-                                                )
-                                            }
-                                            className="px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                        >
-                                            <option value={1000}>💎 1,000 Standard</option>
-                                            <option value={2000}>🔥 2,000 Double</option>
-                                            <option value={0}>⚪ 0 No Points</option>
-                                        </select>
-                                    </div>
+                                    {/* Points */}
+                                    <select
+                                        value={q.points}
+                                        onChange={(e) =>
+                                            handleUpdateQuestion(
+                                                qIndex,
+                                                "points",
+                                                Number(e.target.value)
+                                            )
+                                        }
+                                        className="bg-zinc-900 border border-white/8 rounded-md px-2.5 py-1 text-xs text-neutral-300 focus:outline-none cursor-pointer"
+                                    >
+                                        <option value={1000}>1,000 pts</option>
+                                        <option value={2000}>2,000 pts</option>
+                                        <option value={0}>0 pts</option>
+                                    </select>
 
-                                    {/* Delete Question */}
+                                    {/* Remove */}
                                     {questions.length > 1 && (
                                         <button
                                             type="button"
                                             onClick={() => handleRemoveQuestion(qIndex)}
-                                            className="text-xs text-red-400 hover:text-red-300 font-medium ml-2 transition cursor-pointer"
+                                            className="text-xs text-neutral-600 hover:text-red-400 ml-1 transition cursor-pointer"
                                         >
-                                            ✕ Remove
+                                            ✕
                                         </button>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Question Statement Input */}
-                            <div className="mb-5">
+                            {/* Question text */}
+                            <div className="mb-4">
                                 <input
                                     type="text"
                                     value={q.text}
                                     onChange={(e) =>
                                         handleUpdateQuestion(qIndex, "text", e.target.value)
                                     }
-                                    placeholder="Type your question statement here..."
-                                    className="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
+                                    placeholder="Type question here..."
+                                    className="w-full bg-zinc-900/80 border border-white/8 rounded-lg px-3.5 py-2 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-white/20 transition font-medium"
                                 />
                             </div>
 
                             {/* Options Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {q.options.map((opt, optIndex) => {
-                                    const badge = COLOR_BADGES[optIndex % COLOR_BADGES.length];
-                                    return (
-                                        <div
-                                            key={optIndex}
-                                            className={`p-3 rounded-xl border flex items-center space-x-3 transition ${
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                {q.options.map((opt, optIndex) => (
+                                    <div
+                                        key={optIndex}
+                                        className={`px-3 py-2 rounded-xl border flex items-center space-x-2.5 transition ${
+                                            opt.isCorrect
+                                                ? "bg-white/6er-white/[0.2]"
+                                                : "bg-white/2 border-white/5 hover:border-white/10"
+                                        }`}
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleToggleCorrectOption(qIndex, optIndex)
+                                            }
+                                            className={`w-5 h-5 rounded-full border flex items-center justify-center text-[11px] font-bold transition cursor-pointer shrink-0 ${
                                                 opt.isCorrect
-                                                    ? "bg-emerald-500/10 border-emerald-500/50"
-                                                    : "bg-slate-800/40 border-slate-800 hover:border-slate-700"
+                                                    ? "bg-white text-black border-white"
+                                                    : "border-neutral-700 text-transparent hover:border-neutral-500"
                                             }`}
                                         >
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    handleToggleCorrectOption(qIndex, optIndex)
-                                                }
-                                                className={`w-6 h-6 rounded-full border flex items-center justify-center text-xs font-bold transition cursor-pointer shrink-0 ${
-                                                    opt.isCorrect
-                                                        ? "bg-emerald-500 border-emerald-400 text-white shadow-md shadow-emerald-500/30"
-                                                        : "border-slate-600 text-slate-500 hover:border-slate-400"
-                                                }`}
-                                            >
-                                                {opt.isCorrect ? "✓" : ""}
-                                            </button>
+                                            ✓
+                                        </button>
 
-                                            <input
-                                                type="text"
-                                                value={opt.text}
-                                                disabled={q.type === "TRUE_FALSE"}
-                                                onChange={(e) =>
-                                                    handleUpdateOptionText(
-                                                        qIndex,
-                                                        optIndex,
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder={`Option ${optIndex + 1}`}
-                                                className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder-slate-500"
-                                            />
+                                        <input
+                                            type="text"
+                                            value={opt.text}
+                                            disabled={q.type === "TRUE_FALSE"}
+                                            onChange={(e) =>
+                                                handleUpdateOptionText(
+                                                    qIndex,
+                                                    optIndex,
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder={`Option ${optIndex + 1}`}
+                                            className="w-full bg-transparent border-none text-white text-xs focus:outline-none placeholder:text-neutral-600"
+                                        />
 
-                                            <span
-                                                className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded border shrink-0 ${badge.bg}`}
-                                            >
-                                                {badge.label}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
+                                        <span className="text-[10px] font-mono text-neutral-600 font-semibold shrink-0">
+                                            {OPTION_LETTERS[optIndex % 4]}
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     ))}
                 </div>
 
-                {/* Bottom Action Bar */}
-                <div className="flex justify-between items-center mt-8 pt-6 border-t border-slate-800">
+                {/* Bottom Bar */}
+                <div className="flex justify-between items-center mt-8 pt-6 border-t border-white/5">
                     <button
                         type="button"
                         onClick={handleAddQuestion}
-                        className="px-5 py-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-200 rounded-xl text-sm font-medium transition cursor-pointer"
+                        className="relative group/btn text-xs font-semibold text-neutral-200 bg-neutral-800 hover:bg-white hover:text-black border border-white/8 rounded-lg px-3 py-1.5 transition duration-200 disabled:opacity-50 cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
                     >
-                        + Add Another Question
+                        + Add Question
                     </button>
                     <button
                         type="button"
                         onClick={handlePublish}
                         disabled={loading}
-                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold rounded-xl text-sm shadow-lg shadow-indigo-600/30 transition cursor-pointer flex items-center space-x-1.5"
+                       className="relative group/btn text-xs font-semibold text-neutral-200 bg-neutral-800 hover:bg-white hover:text-black border border-white/8 rounded-lg px-3 py-1.5 transition duration-200 disabled:opacity-50 cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
                     >
-                        {loading ? (
-                            <span>Publishing...</span>
-                        ) : (
-                            <>
-                                <span>🚀</span>
-                                <span>Publish Quiz</span>
-                            </>
-                        )}
+                        {loading ? "Publishing..." : "Publish Quiz"}
+                        <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-linear-to-r from-transparent via-neutral-500 to-transparent" />
                     </button>
                 </div>
             </main>

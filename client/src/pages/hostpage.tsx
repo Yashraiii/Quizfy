@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useGameSocket } from "../hooks/useGameSockets";
+import { Copy, Check } from "lucide-react";
+
+
+const OPTION_LETTERS = ["A", "B", "C", "D"];
 
 export const HostPage = () => {
     const { roomCode } = useParams<{ roomCode: string }>();
+    const [copied, setCopied] = useState<boolean>(false);
     const navigate = useNavigate();
 
     const {
@@ -36,97 +41,109 @@ export const HostPage = () => {
         return () => clearInterval(interval);
     }, [stage, currentQuestion]);
 
-    // Connect to room as host on mount
     useEffect(() => {
         if (roomCode) {
             joinAsHost(roomCode);
         }
     }, [roomCode, joinAsHost]);
-
-    // Kahoot color palette
-    const OPTION_COLORS = [
-        "bg-red-600 border-red-500",
-        "bg-blue-600 border-blue-500",
-        "bg-amber-500 border-amber-400",
-        "bg-emerald-600 border-emerald-500",
-    ];
-
-    const OPTION_SHAPES = ["🔺", "🔷", "🟡", "🟩"];
+    const handleCopy = async () => {
+        if (!roomCode) return;
+        try {
+            await navigator.clipboard.writeText(roomCode);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error("Failed to copy text: ", err);
+        }
+    };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-between p-6 select-none">
+        <div className="min-h-screen bg-transparent text-neutral-100 flex flex-col justify-between p-6 select-none antialiased">
             {/* Top Bar */}
-            <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+            <div className="flex justify-between items-center border-b border-white/5 pb-4">
                 <div className="flex items-center space-x-3">
-                    <span className="text-xl font-black text-transparent bg-clip-text bg-linear-to-r from-indigo-400 to-purple-400">
-                        Quizfy Live
+                    <span className="text-lg font-black tracking-tight text-white">
+                        Quiz<span className="text-indigo-400">fy</span>
                     </span>
                     {quizTitle && (
-                        <span className="text-xs bg-slate-800 px-3 py-1 rounded-full text-slate-300 font-medium">
+                        <span className="text-sm bg-white/3 border border-white/6 px-3 py-1 rounded-full text-neutral-400 font-medium">
                             {quizTitle}
                         </span>
                     )}
                 </div>
 
                 <div className="flex items-center space-x-4">
-                    <span className="text-sm font-semibold text-slate-400">
-                        PIN: <span className="text-indigo-400 text-lg font-mono tracking-wider font-bold">{roomCode}</span>
-                    </span>
                     <button
                         onClick={() => navigate("/dashboard")}
-                        className="text-xs text-red-400 hover:text-red-300 transition cursor-pointer"
+                       className="relative group/btn text-xs font-semibold text-neutral-200 bg-neutral-800 hover:bg-white hover:text-black border border-white/8 rounded-lg px-3 py-1.5 transition duration-200 disabled:opacity-50 cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
                     >
-                        End Game
+                        End game
                     </button>
                 </div>
             </div>
 
             {/* Error Message */}
             {error && (
-                <div className="my-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-center text-sm">
+                <div className="my-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-center text-xs">
                     {error}
                 </div>
             )}
 
-            
+            {/* STAGE 1: LOBBY */}
             {(stage === "LOBBY" || stage === "CONNECTING") && (
-                <div className="flex-1 flex flex-col items-center justify-center text-center max-w-4xl mx-auto py-10">
-                    <p className="text-slate-400 text-sm uppercase font-bold tracking-widest mb-2">
-                        Join at <span className="text-white font-mono">quizfy.com/play</span>
-                    </p>
+                <div className="flex-1 flex flex-col items-center justify-center text-center max-w-3xl mx-auto py-10 w-full">
 
-                    {/* Big Game PIN */}
-                    <div className="bg-slate-900 border-2 border-indigo-500/40 rounded-3xl px-12 py-6 mb-10 shadow-2xl shadow-indigo-500/10">
-                        <span className="text-6xl sm:text-7xl font-black font-mono tracking-widest text-transparent bg-clip-text bg-linear-to-r from-indigo-400 to-purple-400">
-                            {roomCode}
-                        </span>
+                    <div className="rounded-3xl border border-white/8 bg-white/2 px-10 py-5 mb-10 shadow-2xl">
+                        <div>
+                            <p className="text-3xl sm:text-3xl font-light italic mb-2 text-neutral-300">
+                                Room Code
+                            </p>
+                            <div className="flex items-center justify-center gap-4">
+                                <span className="text-5xl sm:text-5xl font-black font-mono tracking-widest text-neutral-100">
+                                    {roomCode}
+                                </span>
+                                
+                                <button
+                                    onClick={handleCopy}
+                                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 transition-all duration-200 cursor-pointer"
+                                    title="Copy Room Code"
+                                >
+                                    {copied ? (
+                                        <Check className="w-5 h-5 text-green-400" />
+                                    ) : (
+                                        <Copy className="w-5 h-5 text-neutral-300 hover:text-white" />
+                                    )}
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Players Count & Start Button */}
-                    <div className="w-full flex justify-between items-center mb-6 px-4">
-                        <div className="flex items-center space-x-2 text-slate-300 font-semibold">
-                            <span className="text-xl">👥</span>
-                            <span>{players.length} Players Joined</span>
+                    <div className="w-full flex justify-between items-center mb-6 px-2">
+                        <div className="flex items-center space-x-2 text-neutral-400 text-sm font-medium">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400/80 animate-pulse" />
+                            <span>{players.length} {players.length === 1 ? "player" : "players"} connected</span>
                         </div>
 
                         <button
                             onClick={startQuiz}
                             disabled={players.length === 0}
-                            className="px-8 py-3.5 bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-40 text-white font-bold text-lg rounded-2xl shadow-xl shadow-indigo-600/30 transition transform active:scale-95 cursor-pointer"
+                            className="relative group/btn px-8 py-3 bg-neutral-800  disabled:opacity-40 text-neutral-200 hover:bg-white hover:text-black font-semibold text-sm rounded-xl border border-white/8 shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset] transition cursor-pointer"
                         >
                             Start Game →
+                            <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-linear-to-r from-transparent via-neutral-500 to-transparent" />
                         </button>
                     </div>
 
-                    {/* Player Name Badges Grid */}
-                    <div className="w-full min-h-40 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 flex flex-wrap gap-3 items-center justify-center">
+                    {/* Player Badges */}
+                    <div className="w-full min-h-36 rounded-2xl border border-white/5 bg-white/1 p-6 flex flex-wrap gap-2.5 items-center justify-center">
                         {players.length === 0 ? (
-                            <p className="text-slate-500 italic">Waiting for players to join with the PIN...</p>
+                            <p className=   " text-amber-50 italic">Waiting for players to Join...</p>
                         ) : (
                             players.map((p) => (
                                 <div
                                     key={p.participantId}
-                                    className="px-5 py-2.5 bg-slate-800 border border-slate-700/80 rounded-xl text-white font-bold text-sm shadow-md animate-bounce-short"
+                                    className="px-4 py-2 bg-white/4 border border-white/8 rounded-xl text-neutral-200 font-medium text-xs shadow-sm"
                                 >
                                     {p.displayName}
                                 </div>
@@ -136,43 +153,46 @@ export const HostPage = () => {
                 </div>
             )}
 
+            {/* STAGE 2: QUESTION */}
             {stage === "QUESTION" && currentQuestion && (
-                <div className="flex-1 flex flex-col justify-between max-w-5xl mx-auto w-full py-6">
-                    {/* Question Statement */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center shadow-xl mb-6">
-                        <span className="text-xs uppercase font-bold tracking-widest text-indigo-400 mb-2 block">
-                            Question {currentQuestion.questionIndex}
-                        </span>
-                        <h2 className="text-2xl sm:text-3xl font-black text-white">
+                <div className="flex-1 flex flex-col justify-between max-w-4xl mx-auto w-full py-6">
+                    {/* Question Statement Card */}
+                    <div className="rounded-3xl border border-white/8 bg-white/2 p-8 text-center mb-6">
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                            <span className="text-xs font-mono uppercase tracking-widest text-neutral-500">
+                                Question {currentQuestion.questionIndex}
+                            </span>
+                            {currentQuestion.type === "MULTI_CORRECT" && (
+                                <span className="text-[10px] font-mono text-neutral-400 border border-white/8 bg-white/3 px-2 py-0.5 rounded-full uppercase">
+                                    Multi-Select
+                                </span>
+                            )}
+                        </div>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-white">
                             {currentQuestion.text}
                         </h2>
                     </div>
 
                     {/* Timer & Live Answer Counter */}
                     <div className="space-y-2 mb-4 px-2">
-                        <div className="flex justify-between items-center text-slate-300 font-semibold">
-                            <div className="flex items-center space-x-2">
-                                <span className={`text-xl font-mono font-bold px-3 py-1 rounded-xl border ${
-                                    timeLeft <= 5 
-                                        ? "bg-red-500/20 text-red-400 border-red-500/40 animate-pulse" 
-                                        : "bg-slate-800 text-indigo-300 border-slate-700"
-                                }`}>
-                                    ⏱️ {timeLeft}s
-                                </span>
-                            </div>
-                            <div className="flex items-center space-x-2 text-indigo-400">
-                                <span>Answers:</span>
-                                <span className="text-white text-lg font-bold">
-                                    {answerCount.answered} / {answerCount.total || players.length}
-                                </span>
-                            </div>
+                        <div className="flex justify-between items-center text-xs font-medium text-neutral-400">
+                            <span className={`font-mono px-3 py-1 rounded-lg border ${
+                                timeLeft <= 5
+                                    ? "bg-red-500/10 border-red-500/30 text-red-400"
+                                    : "bg-white/3 border-white/8 text-neutral-300"
+                            }`}>
+                                {timeLeft}s remaining
+                            </span>
+                            <span>
+                                Answers: <strong className="text-neutral-200">{answerCount.answered}</strong> / {answerCount.total || players.length}
+                            </span>
                         </div>
 
-                        {/* Animated Shrinking Kahoot Countdown Bar */}
-                        <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                        {/* Animated Countdown Bar */}
+                        <div className="w-full h-1 bg-white/6 rounded-full overflow-hidden">
                             <div 
                                 className={`h-full transition-all duration-200 ${
-                                    timeLeft <= 5 ? "bg-red-500" : "bg-gradient-to-r from-indigo-500 to-purple-500"
+                                    timeLeft <= 5 ? "bg-red-400" : "bg-neutral-300"
                                 }`}
                                 style={{
                                     width: `${currentQuestion.timeLimit ? Math.max(0, Math.min(100, (timeLeft / currentQuestion.timeLimit) * 100)) : 0}%`
@@ -181,136 +201,138 @@ export const HostPage = () => {
                         </div>
                     </div>
 
-                    {/* 4 Colored Options Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* 4 Options Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {currentQuestion.options.map((opt, idx) => (
                             <div
                                 key={opt.id}
-                                className={`p-6 rounded-2xl border-2 ${OPTION_COLORS[idx % 4]} text-white flex items-center space-x-4 shadow-lg`}
+                                className="p-6 rounded-2xl border border-white/8 bg-white/3 text-white flex items-center space-x-4 shadow-sm"
                             >
-                                <span className="text-2xl">{OPTION_SHAPES[idx % 4]}</span>
-                                <span className="text-xl font-bold">{opt.text}</span>
+                                <span className="font-mono text-sm font-bold text-neutral-500">{OPTION_LETTERS[idx % 4]}</span>
+                                <span className="text-base font-semibold text-neutral-200">{opt.text}</span>
                             </div>
                         ))}
                     </div>
                 </div>
             )}
 
-            
+            {/* STAGE 3: QUESTION RESULTS */}
             {stage === "QUESTION_RESULTS" && currentQuestion && (
-                <div className="flex-1 flex flex-col justify-center items-center max-w-4xl mx-auto w-full py-8 text-center">
-                    <h3 className="text-2xl font-bold text-slate-300 mb-6">Correct Answer</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                <div className="flex-1 flex flex-col justify-center items-center max-w-3xl mx-auto w-full py-8 text-center">
+                    <h3 className="text-xs font-mono uppercase tracking-widest text-neutral-500 mb-6">Correct Answer</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                         {currentQuestion.options.map((opt, idx) => {
                             const isCorrect = correctOptionIds.includes(opt.id);
                             return (
                                 <div
                                     key={opt.id}
-                                    className={`p-6 rounded-2xl border-2 flex items-center justify-between text-white font-bold text-lg transition ${
+                                    className={`p-5 rounded-2xl border flex items-center justify-between text-sm font-semibold transition ${
                                         isCorrect
-                                            ? "bg-emerald-600 border-emerald-400 shadow-xl shadow-emerald-500/20 scale-102"
-                                            : "bg-slate-900 border-slate-800 opacity-30"
+                                            ? "bg-white/8 border-white/40 text-white shadow-md"
+                                            : "bg-white/1 border-white/4 text-neutral-600 opacity-40"
                                     }`}
                                 >
                                     <div className="flex items-center space-x-3">
-                                        <span>{OPTION_SHAPES[idx % 4]}</span>
+                                        <span className="font-mono text-xs">{OPTION_LETTERS[idx % 4]}</span>
                                         <span>{opt.text}</span>
                                     </div>
-                                    {isCorrect && <span className="text-2xl">✓</span>}
+                                    {isCorrect && <span className="font-bold text-white">✓</span>}
                                 </div>
                             );
                         })}
                     </div>
-                    <p className="text-slate-400 text-sm mt-8 animate-pulse">Leaderboard coming up in 5 seconds...</p>
+                    <p className="text-neutral-500 text-xs font-mono mt-8">Scoreboard in 5 seconds...</p>
                 </div>
             )}
 
-            {/* ========================================================================= */}
-            {/* STAGE 4: LEADERBOARD SCREEN                                               */}
-            {/* ========================================================================= */}
+            {/* STAGE 4: LEADERBOARD SCREEN */}
             {stage === "LEADERBOARD" && (
-                <div className="flex-1 flex flex-col justify-center items-center max-w-2xl mx-auto w-full py-8">
-                    <h2 className="text-3xl font-black text-white mb-6">🏆 Scoreboard</h2>
-                    <div className="w-full space-y-3">
+                <div className="flex-1 flex flex-col justify-center items-center max-w-xl mx-auto w-full py-8">
+                    <h2 className="text-lg font-bold text-white mb-6">Scoreboard</h2>
+                    <div className="w-full space-y-2">
                         {leaderboard.map((player) => (
                             <div
                                 key={player.rank}
-                                className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex justify-between items-center shadow-lg"
+                                className="rounded-xl border border-white/6 bg-white/2 p-4 flex justify-between items-center"
                             >
-                                <div className="flex items-center space-x-4">
-                                    <span className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-indigo-400">
+                                <div className="flex items-center space-x-3">
+                                    <span className="w-6 h-6 rounded-md bg-white/5 border border-white/8 flex items-center justify-center font-mono text-xs text-neutral-400">
                                         #{player.rank}
                                     </span>
-                                    <span className="font-bold text-white text-lg">{player.displayName}</span>
+                                    <span className="font-medium text-neutral-200 text-sm">{player.displayName}</span>
                                     {player.streak > 1 && (
-                                        <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-semibold">
-                                            🔥 {player.streak} streak
+                                        <span className="text-[10px] font-mono border border-white/8 text-neutral-400 px-2 py-0.5 rounded-full">
+                                            {player.streak} streak
                                         </span>
                                     )}
                                 </div>
-                                <span className="text-xl font-mono font-bold text-white">{player.score} pts</span>
+                                <span className="text-sm font-mono font-bold text-neutral-200">{player.score.toLocaleString()} pts</span>
                             </div>
                         ))}
                     </div>
-                    <p className="text-slate-400 text-sm mt-8 animate-pulse">Next question starting automatically...</p>
+                    {/* Loading Next Question Indicator */}
+                    <div className="mt-8 flex items-center justify-center gap-2 text-xs font-mono text-neutral-400">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                        </span>
+                        <span>Loading next question...</span>
+                    </div>
                 </div>
             )}
 
-            {/* ========================================================================= */}
-            {/* STAGE 5: GAME OVER / PODIUM                                               */}
-            {/* ========================================================================= */}
+            {/* STAGE 5: GAME OVER */}
             {stage === "GAME_OVER" && (
-                <div className="flex-1 flex flex-col justify-center items-center max-w-3xl mx-auto w-full py-8 text-center">
-                    <span className="text-6xl mb-4">🎉</span>
-                    <h2 className="text-4xl font-black text-transparent bg-clip-text bg-linear-to-r from-amber-300 via-yellow-400 to-amber-500 mb-8">
-                        Game Over!
+                <div className="flex-1 flex flex-col justify-center items-center max-w-2xl mx-auto w-full py-8 text-center">
+                    <h2 className="text-3xl font-black text-white mb-8">
+                        Game Over
                     </h2>
 
                     {/* Podium */}
-                    <div className="flex justify-center items-end gap-4 w-full mb-8">
+                    <div className="flex justify-center items-end gap-3 w-full mb-8 max-w-md">
                         {/* 2nd Place */}
                         {gameOverPodium[1] && (
-                            <div className="flex-1 bg-slate-900 border border-slate-700 rounded-2xl p-4 h-48 flex flex-col justify-end items-center">
-                                <span className="text-3xl mb-1">🥈</span>
-                                <span className="font-bold text-white">{gameOverPodium[1].displayName}</span>
-                                <span className="text-sm text-slate-400">{gameOverPodium[1].score} pts</span>
+                            <div className="flex-1 rounded-2xl border border-white/8 bg-white/2 p-4 h-44 flex flex-col justify-end items-center">
+                                <span className="text-xs font-mono text-neutral-500 mb-1">#2</span>
+                                <span className="font-bold text-white text-sm">{gameOverPodium[1].displayName}</span>
+                                <span className="text-xs font-mono text-neutral-400 mt-1">{gameOverPodium[1].score.toLocaleString()} pts</span>
                             </div>
                         )}
                         {/* 1st Place */}
                         {gameOverPodium[0] && (
-                            <div className="flex-1 bg-linear-to-t from-amber-600/30 to-amber-500/10 border-2 border-amber-400 rounded-2xl p-6 h-64 flex flex-col justify-end items-center shadow-xl shadow-amber-500/10">
-                                <span className="text-5xl mb-2">👑</span>
-                                <span className="text-xl font-black text-white">{gameOverPodium[0].displayName}</span>
-                                <span className="text-sm font-bold text-amber-300">{gameOverPodium[0].score} pts</span>
+                            <div className="flex-1 rounded-2xl border border-white/20 bg-white/6 p-5 h-56 flex flex-col justify-end items-center shadow-lg">
+                                <span className="text-xs font-mono text-neutral-300 font-bold mb-1">👑 1st</span>
+                                <span className="text-base font-bold text-white">{gameOverPodium[0].displayName}</span>
+                                <span className="text-xs font-mono text-neutral-300 font-semibold mt-1">{gameOverPodium[0].score.toLocaleString()} pts</span>
                             </div>
                         )}
                         {/* 3rd Place */}
                         {gameOverPodium[2] && (
-                            <div className="flex-1 bg-slate-900 border border-slate-700 rounded-2xl p-4 h-40 flex flex-col justify-end items-center">
-                                <span className="text-3xl mb-1">🥉</span>
-                                <span className="font-bold text-white">{gameOverPodium[2].displayName}</span>
-                                <span className="text-sm text-slate-400">{gameOverPodium[2].score} pts</span>
+                            <div className="flex-1 rounded-2xl border border-white/8 bg-white/2 p-4 h-36 flex flex-col justify-end items-center">
+                                <span className="text-xs font-mono text-neutral-500 mb-1">#3</span>
+                                <span className="font-bold text-white text-sm">{gameOverPodium[2].displayName}</span>
+                                <span className="text-xs font-mono text-neutral-400 mt-1">{gameOverPodium[2].score.toLocaleString()} pts</span>
                             </div>
                         )}
                     </div>
 
-                    {/* All Player Standings Summary */}
+                    {/* All Player Standings */}
                     {gameOverPodium.length > 0 && (
-                        <div className="w-full max-w-xl bg-slate-900/80 border border-slate-800 rounded-2xl p-5 mb-8 text-left shadow-xl">
-                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                                Complete Final Standings ({gameOverPodium.length} Total)
+                        <div className="w-full max-w-md rounded-2xl border border-white/6 bg-white/2 p-4 mb-8 text-left">
+                            <h4 className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest mb-3">
+                                Final Standings ({gameOverPodium.length} Total)
                             </h4>
-                            <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                                 {gameOverPodium.map((p) => (
                                     <div
                                         key={p.rank}
-                                        className="flex justify-between items-center px-4 py-2 bg-slate-800/60 border border-slate-700/40 rounded-xl text-sm font-semibold"
+                                        className="flex justify-between items-center px-3.5 py-1.5 bg-white/2 border border-white/5 rounded-lg text-xs font-medium"
                                     >
-                                        <div className="flex items-center space-x-3">
-                                            <span className="text-indigo-400 font-bold w-6">#{p.rank}</span>
-                                            <span className="text-white">{p.displayName}</span>
+                                        <div className="flex items-center space-x-2.5">
+                                            <span className="text-neutral-500 font-mono w-5">#{p.rank}</span>
+                                            <span className="text-neutral-200">{p.displayName}</span>
                                         </div>
-                                        <span className="font-mono text-amber-400 font-bold">{p.score.toLocaleString()} pts</span>
+                                        <span className="font-mono text-neutral-300">{p.score.toLocaleString()} pts</span>
                                     </div>
                                 ))}
                             </div>
@@ -319,9 +341,10 @@ export const HostPage = () => {
 
                     <button
                         onClick={() => navigate("/dashboard")}
-                        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition cursor-pointer"
+                        className="relative group/btn px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-semibold rounded-xl border border-white/8 transition cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
                     >
                         Back to Dashboard
+                        <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-linear-to-r from-transparent via-neutral-500 to-transparent" />
                     </button>
                 </div>
             )}

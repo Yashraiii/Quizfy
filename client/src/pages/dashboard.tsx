@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AiQuizModal } from "../modals/aiquizModal";
 import { QuizDetailsModal } from "../modals/quizModal";
 import api from "../api/axios";
+import { cn } from "../lib/utils";
 
 interface Quiz {
     id: string;
@@ -12,6 +13,136 @@ interface Quiz {
     createdAt: string;
 }
 
+// ── Thin divider ─────────────────────────────────────────────────────────────
+const Divider = () => (
+    <div className="bg-linear-to-r from-transparent via-neutral-800 to-transparent h-px w-full" />
+);
+
+// ── Skeleton card ─────────────────────────────────────────────────────────────
+const SkeletonCard = () => (
+    <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/80 p-6 space-y-3 animate-pulse shadow-lg">
+        <div className="h-4 w-2/3 rounded bg-zinc-800" />
+        <div className="h-3 w-1/3 rounded bg-zinc-800/60" />
+        <div className="h-3 w-full rounded bg-zinc-800/60" />
+        <div className="h-3 w-4/5 rounded bg-zinc-800/60" />
+        <div className="pt-4 mt-2 border-t border-zinc-800/80 flex justify-between">
+            <div className="h-7 w-24 rounded-lg bg-zinc-800" />
+            <div className="h-7 w-7 rounded-lg bg-zinc-800/60" />
+        </div>
+    </div>
+);
+
+// ── Quiz Card ─────────────────────────────────────────────────────────────────
+const QuizCard = ({
+    quiz,
+    onHost,
+    onEdit,
+    onViewQuestions,
+    onDelete,
+    isStarting,
+}: {
+    quiz: Quiz;
+    onHost: () => void;
+    onEdit: () => void;
+    onViewQuestions: () => void;
+    onDelete: () => void;
+    isStarting: boolean;
+}) => {
+    const [menuOpen, setMenuOpen] = useState(false);
+    const isDraft = quiz.status === "DRAFT";
+
+    return (
+        <div
+            className="group relative rounded-2xl border border-zinc-800/80 bg-zinc-950/85 hover:bg-zinc-900/90 hover:border-zinc-700/80 hover:shadow-2xl hover:shadow-black/70 hover:-translate-y-0.5 transition-all duration-300 p-6 flex flex-col justify-between backdrop-blur-md"
+        >
+            {/* Top */}
+            <div>
+                <div className="flex items-start justify-between gap-3 mb-3">
+                    <h3 className="text-sm font-semibold text-white leading-snug line-clamp-2 flex-1">
+                        {quiz.title}
+                    </h3>
+                    <span
+                        className={cn(
+                            "shrink-0 text-[10px] font-semibold uppercase tracking-widest px-2.5 py-0.5 rounded-full border",
+                            isDraft
+                                ? "border-amber-500/30 text-amber-400 bg-amber-500/10"
+                                : "border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
+                        )}
+                    >
+                        {isDraft ? "Draft" : "Published"}
+                    </span>
+                </div>
+                <p className="text-xs text-neutral-400 line-clamp-2 leading-relaxed">
+                    {quiz.description || "No description provided."}
+                </p>
+            </div>
+
+            {/* Bottom action bar */}
+            <div className="mt-5 pt-4 border-t border-zinc-800/80 flex items-center justify-between">
+                {isDraft ? (
+                    <button
+                        onClick={onEdit}
+                        className="relative group/btn text-xs font-medium text-neutral-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 rounded-lg px-3 py-1.5 transition duration-200 cursor-pointer"
+                    >
+                        Edit Draft
+                    </button>
+                ) : (
+                    <button
+                        onClick={onHost}
+                        disabled={isStarting}
+                        className="relative group/btn text-xs font-semibold text-neutral-100 bg-zinc-900 hover:bg-white hover:text-black border border-zinc-700/80 rounded-lg px-3.5 py-1.5 transition duration-200 disabled:opacity-50 cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.08)_inset]"
+                    >
+                        {isStarting ? "Starting..." : "Host Live"}
+                        {/* BottomGradient */}
+                        <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-linear-to-r from-transparent via-neutral-400 to-transparent" />
+                    </button>
+                )}
+
+                {/* 3-dot menu */}
+                <div className="relative">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpen((p) => !p);
+                        }}
+                        className="w-7 h-7 rounded-lg text-neutral-400 hover:text-white hover:bg-zinc-800/80 flex items-center justify-center transition cursor-pointer text-base font-bold"
+                    >
+                        ⋮
+                    </button>
+
+                    {menuOpen && (
+                        <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute right-0 bottom-9 w-44 rounded-xl border border-zinc-800 bg-zinc-950/95 backdrop-blur-xl shadow-2xl shadow-black/80 py-1 z-30"
+                        >
+                            <button
+                                onClick={() => { setMenuOpen(false); onEdit(); }}
+                                className="w-full px-4 py-2 text-left text-xs text-neutral-300 hover:text-white hover:bg-zinc-800/60 transition cursor-pointer"
+                            >
+                                Edit quiz
+                            </button>
+                            <button
+                                onClick={() => { setMenuOpen(false); onViewQuestions(); }}
+                                className="w-full px-4 py-2 text-left text-xs text-neutral-300 hover:text-white hover:bg-zinc-800/60 transition cursor-pointer"
+                            >
+                                View questions
+                            </button>
+                            <div className="h-px bg-zinc-800/80 my-1 mx-3" />
+                            <button
+                                onClick={() => { setMenuOpen(false); onDelete(); }}
+                                className="w-full px-4 py-2 text-left text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition cursor-pointer"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
 export const DashBoard = () => {
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
     const [loading, setLoading] = useState(true);
@@ -19,25 +150,22 @@ export const DashBoard = () => {
     const [error, setError] = useState("");
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
     const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
-    const [menuOpenQuizId, setMenuOpenQuizId] = useState<string | null>(null);
+    const [joinBoxOpen, setJoinBoxOpen] = useState(false);
+    const [joinPin, setJoinPin] = useState("");
 
     const navigate = useNavigate();
 
-    // 1. Fetch user quizzes on component mount with auth check
     useEffect(() => {
         const token = localStorage.getItem("token");
-        if (!token) {
-            navigate("/login");
-            return;
-        }
+        if (!token) { navigate("/login"); return; }
         fetchQuizzes();
     }, [navigate]);
 
-    // Close 3-dots dropdown when clicking anywhere else on screen
+    // close menus on outside click
     useEffect(() => {
-        const handleClickOutside = () => setMenuOpenQuizId(null);
-        document.addEventListener("click", handleClickOutside);
-        return () => document.removeEventListener("click", handleClickOutside);
+        const close = () => {};
+        document.addEventListener("click", close);
+        return () => document.removeEventListener("click", close);
     }, []);
 
     const fetchQuizzes = async () => {
@@ -50,274 +178,198 @@ export const DashBoard = () => {
                 localStorage.removeItem("token");
                 navigate("/login");
             } else {
-                setError("Failed to load your quizzes. Please try again.");
+                setError("Failed to load your quizzes.");
             }
         } finally {
             setLoading(false);
         }
     };
 
-    // 2. Start a Live Game Room (Kahoot Host)
     const handleHostGame = async (quizId: string) => {
         try {
             setStartingSessionId(quizId);
             const res = await api.post("/api/sessions/create", { quizId });
-            const roomCode = res.data.session.roomCode;
-            navigate(`/host/${roomCode}`);
+            navigate(`/host/${res.data.session.roomCode}`);
         } catch (err: any) {
-            alert(err.response?.data?.message || "Failed to create live game session.");
+            alert(err.response?.data?.message || "Failed to create session.");
         } finally {
             setStartingSessionId(null);
         }
     };
 
-    // 3. Delete Quiz
     const handleDeleteQuiz = async (quizId: string) => {
-        if (!confirm("Are you sure you want to delete this quiz?")) return;
-
+        if (!confirm("Delete this quiz?")) return;
         try {
             await api.delete(`/api/quiz/${quizId}`);
             setQuizzes((prev) => prev.filter((q) => q.id !== quizId));
-        } catch (err: any) {
+        } catch {
             alert("Failed to delete quiz.");
         }
     };
 
-    // 4. Logout
     const handleLogout = () => {
         localStorage.removeItem("token");
         navigate("/login");
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100">
-            {/* Top Navigation Bar */}
-            <nav className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-20 px-6 py-4 flex justify-between items-center">
-                <div className="flex items-center space-x-3">
-                    <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
-                        Quizfy
-                    </span>
-                    <span className="text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full font-medium">
-                        Host Studio
-                    </span>
-                </div>
+        <div className="max-h-screen bg-blend-darken text-neutral-100 antialiased">
 
-                <div className="flex items-center space-x-4">
-                    <button
-                        onClick={handleLogout}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white transition cursor-pointer"
-                    >
-                        Sign Out
-                    </button>
+            {/* ── Navbar ── */}
+            <nav className="sticky top-0 z-20 border-b border-white/5 bg-[#080808]/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <span className="text-xl font-black tracking-tight text-white">
+                        Quiz<span className="text-indigo-400">fy</span>
+                    </span>
+                    <span className="text-[10px] font-semibold text-neutral-600 uppercase tracking-widest border border-white/6 rounded-full px-2 py-0.5">
+                        Studio
+                    </span>
                 </div>
+                <button
+                    onClick={handleLogout}
+                   className="relative group/btn text-xs font-semibold text-neutral-200 bg-neutral-800 hover:bg-white hover:text-black border border-white/8 rounded-lg px-3 py-1.5 transition duration-200 disabled:opacity-50 cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
+                    >
+                    Sign out
+                </button>
             </nav>
 
-            {/* Main Content */}
+            {/* ── Main ── */}
             <main className="max-w-6xl mx-auto px-6 py-10">
-                {/* Header Actions */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+
+                {/* Header row */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
                     <div>
-                        <h1 className="text-2xl font-bold text-white">Your Quizzes</h1>
-                        <p className="text-slate-400 text-sm mt-1">
-                            Create, manage, and host live interactive games.
+                        <h1 className="text-2xl font-bold text-neutral-100">Your Quizzes</h1>
+                        <p className="text-sm text-neutral-600 mt-1">
+                            Create, manage, and host live games.
                         </p>
                     </div>
 
-                    <div className="flex items-center space-x-3">
-                        {/* Generate AI Button */}
+                    <div className="flex items-center gap-2">
+                        {/* Generate AI */}
                         <button
                             onClick={() => setIsAiModalOpen(true)}
-                            className="px-4 py-2.5 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 font-medium rounded-xl transition flex items-center space-x-2 cursor-pointer text-sm"
-                        >
-                            <span>✨ Generate with AI</span>
+                            className="relative group/btn text-xs font-semibold text-neutral-200 bg-neutral-800 hover:bg-white hover:text-black border border-white/8 rounded-lg px-3 py-1.5 transition duration-200 disabled:opacity-50 cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
+                    >
+                            ✦ Generate with AI
                         </button>
 
-                        {/* Join Game with PIN */}
-                        <button
-                            onClick={() => {
-                                const pin = prompt("Enter Game PIN:");
-                                if (pin) navigate(`/play/${pin.trim()}`);
-                            }}
-                            className="px-4 py-2.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 font-medium rounded-xl transition cursor-pointer text-sm"
-                        >
-                            🎮 Join Game
-                        </button>
+                        {/* Join Game Box */}
+                        {joinBoxOpen ? (
+                            <form
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    if (joinPin.trim()) navigate(`/play/${joinPin.trim()}`);
+                                }}
+                                className="flex items-center gap-1.5 bg-zinc-900/90 border border-white/10 rounded-xl px-2.5 py-1 shadow-lg"
+                            >
+                                <input
+                                    type="text"
+                                    autoFocus
+                                    placeholder="Enter code..."
+                                    value={joinPin}
+                                    onChange={(e) => setJoinPin(e.target.value)}
+                                    className="bg-transparent border-none text-xs text-white placeholder:text-neutral-500 focus:outline-none w-28 uppercase font-mono tracking-wider"
+                                />
+                                <button
+                                    type="submit"
+                                    className="text-xs font-semibold px-2.5 py-1 bg-white/8 hover:bg-white/15 text-white rounded-lg transition cursor-pointer"
+                                >
+                                    Join
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setJoinBoxOpen(false)}
+                                    className="text-neutral-500 hover:text-neutral-300 text-xs px-1 cursor-pointer"
+                                >
+                                    ✕
+                                </button>
+                            </form>
+                        ) : (
+                            <button
+                                onClick={() => setJoinBoxOpen(true)}
+                                className="relative group/btn text-xs font-semibold text-neutral-200 bg-neutral-800 hover:bg-white hover:text-black border border-white/8 rounded-lg px-3 py-1.5 transition duration-200 disabled:opacity-50 cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
+                            >
+                                Join game
+                            </button>
+                        )}
 
-                        {/* Create Quiz Button */}
+                        {/* Create Quiz */}
                         <button
                             onClick={() => navigate("/quiz/create")}
-                            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl shadow-lg shadow-indigo-600/30 transition cursor-pointer text-sm"
+                            className="relative group/btn text-xs font-semibold text-neutral-200 bg-neutral-800 hover:bg-white hover:text-black border border-white/8 rounded-lg px-3 py-1.5 transition duration-200 disabled:opacity-50 cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
                         >
-                            + Create Quiz
+                            + New quiz
+                            <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-linear-to-r from-transparent via-neutral-500 to-transparent" />
                         </button>
                     </div>
                 </div>
 
-                {/* Error Banner */}
+                <Divider />
+
+                {/* Error */}
                 {error && (
-                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-sm">
+                    <div className="mt-6 rounded-xl border border-red-500/20 bg-red-500/[0.07] px-4 py-3 text-sm text-red-400">
                         {error}
                     </div>
                 )}
 
-                {/* Quiz Grid */}
-                {loading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[1, 2, 3].map((i) => (
-                            <div
-                                key={i}
-                                className="h-48 bg-slate-900/60 border border-slate-800 rounded-2xl animate-pulse"
-                            />
-                        ))}
-                    </div>
-                ) : quizzes.length === 0 ? (
-                    /* Empty State */
-                    <div className="text-center py-16 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
-                        <div className="text-4xl mb-3">🎯</div>
-                        <h3 className="text-lg font-semibold text-white">No quizzes yet</h3>
-                        <p className="text-slate-400 text-sm mt-1 mb-6">
-                            Create your first quiz or generate one instantly using AI!
-                        </p>
-                        <button
-                            onClick={() => navigate("/quiz/create")}
-                            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl transition text-sm cursor-pointer"
-                        >
-                            Create First Quiz
-                        </button>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {quizzes.map((quiz) => (
-                            <div
-                                key={quiz.id}
-                                className="bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-6 transition flex flex-col justify-between shadow-lg relative"
-                            >
-                                <div>
-                                    <div className="flex justify-between items-start gap-2 mb-2">
-                                        <h3 className="text-lg font-bold text-white line-clamp-1 pr-2">
-                                            {quiz.title}
-                                        </h3>
-                                        <span
-                                            className={`text-[11px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full border ${
-                                                quiz.status === "PUBLISHED"
-                                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                                                    : "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                                            }`}
-                                        >
-                                            {quiz.status === "PUBLISHED" ? "✓ Published" : "📝 Draft"}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-slate-400 line-clamp-2 mb-4">
-                                        {quiz.description || "No description provided."}
-                                    </p>
-                                </div>
-
-                                {/* Footer Action Bar */}
-                                
-                                <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between relative">
-                                    {/* Action Button: Host Live if PUBLISHED, or Edit if DRAFT */}
-                                    {quiz.status === "DRAFT" ? (
-                                        <button
-                                            onClick={() => navigate(`/quiz/edit/${quiz.id}`)}
-                                            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-semibold rounded-lg border border-amber-500/30 transition flex items-center space-x-1.5 cursor-pointer"
-                                        >
-                                            <span>✏️</span>
-                                            <span>Edit Draft</span>
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={() => handleHostGame(quiz.id)}
-                                            disabled={startingSessionId === quiz.id}
-                                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-xs font-semibold rounded-lg shadow-md shadow-indigo-600/20 transition flex items-center space-x-1.5 cursor-pointer"
-                                        >
-                                            {startingSessionId === quiz.id ? (
-                                                <span>Starting...</span>
-                                            ) : (
-                                                <>
-                                                    <span>🚀</span>
-                                                    <span>Host Live</span>
-                                                </>
-                                            )}
-                                        </button>
-                                    )}
-
-                                    {/* 3-Dots Menu Trigger (Kahoot Style) */}
-                                    <div className="relative">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setMenuOpenQuizId(
-                                                    menuOpenQuizId === quiz.id ? null : quiz.id
-                                                );
-                                            }}
-                                            className="w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-lg font-bold transition cursor-pointer"
-                                        >
-                                            ⋮
-                                        </button>
-
-                                        {/* Dropdown Menu */}
-                                        {menuOpenQuizId === quiz.id && (
-                                            <div
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="absolute right-0 bottom-10 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl py-1.5 z-30 backdrop-blur-md"
-                                            >
-                                                {/* Edit Quiz Option */}
-                                                <button
-                                                    onClick={() => {
-                                                        setMenuOpenQuizId(null);
-                                                        navigate(`/quiz/edit/${quiz.id}`);
-                                                    }}
-                                                    className="w-full px-4 py-2 text-left text-xs text-slate-200 hover:bg-slate-800 flex items-center space-x-2.5 transition cursor-pointer"
-                                                >
-                                                    <span></span>
-                                                    <span>Edit Quiz</span>
-                                                </button>
-
-                                                {/* View Questions Option */}
-                                                <button
-                                                    onClick={() => {
-                                                        setMenuOpenQuizId(null);
-                                                        setSelectedQuizId(quiz.id);
-                                                    }}
-                                                    className="w-full px-4 py-2 text-left text-xs text-slate-200 hover:bg-slate-800 flex items-center space-x-2.5 transition cursor-pointer"
-                                                >
-                                                    <span></span>
-                                                    <span>View Questions</span>
-                                                </button>
-
-                                                <div className="h-[1px] bg-slate-800 my-1" />
-
-                                                {/* Delete Option */}
-                                                <button
-                                                    onClick={() => {
-                                                        setMenuOpenQuizId(null);
-                                                        handleDeleteQuiz(quiz.id);
-                                                    }}
-                                                    className="w-full px-4 py-2 text-left text-xs text-red-400 hover:bg-red-500/10 flex items-center space-x-2.5 transition cursor-pointer"
-                                                >
-                                                    <span>🗑️</span>
-                                                    <span>Delete</span>
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
+                {/* Quiz grid */}
+                <div className="mt-8">
+                    {loading ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {[1, 2, 3].map((i) => <SkeletonCard key={i} />)}
+                        </div>
+                    ) : quizzes.length === 0 ? (
+                        /* Empty state */
+                        <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md shadow-xl">
+                            <div className="w-14 h-14 rounded-2xl border border-zinc-800 bg-zinc-900/80 flex items-center justify-center text-2xl mb-5 shadow-inner">
+                                📋
                             </div>
-                        ))}
-                    </div>
-                )}
+                            <h3 className="text-base font-semibold text-white">No quizzes yet</h3>
+                            <p className="mt-2 text-sm text-neutral-400 max-w-xs">
+                                Create your first quiz manually or generate one instantly with AI.
+                            </p>
+                            <div className="mt-6 flex gap-3">
+                                <button
+                                    onClick={() => setIsAiModalOpen(true)}
+                                    className="text-xs font-medium text-neutral-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 rounded-xl px-4 py-2.5 transition cursor-pointer"
+                                >
+                                    ✦ Generate with AI
+                                </button>
+                                <button
+                                    onClick={() => navigate("/quiz/create")}
+                                    className="relative group/btn text-xs font-semibold text-neutral-100 bg-zinc-900 hover:bg-white hover:text-black border border-zinc-700/80 rounded-xl px-4 py-2.5 transition duration-200 cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.08)_inset]"
+                                >
+                                    + New quiz
+                                    <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-linear-to-r from-transparent via-neutral-400 to-transparent" />
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {quizzes.map((quiz) => (
+                                <QuizCard
+                                    key={quiz.id}
+                                    quiz={quiz}
+                                    isStarting={startingSessionId === quiz.id}
+                                    onHost={() => handleHostGame(quiz.id)}
+                                    onEdit={() => navigate(`/quiz/edit/${quiz.id}`)}
+                                    onViewQuestions={() => setSelectedQuizId(quiz.id)}
+                                    onDelete={() => handleDeleteQuiz(quiz.id)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
             </main>
 
-            {/* AI Generation Modal */}
+            {/* Modals */}
             <AiQuizModal
                 isOpen={isAiModalOpen}
                 onClose={() => setIsAiModalOpen(false)}
-                onQuizCreated={(newQuiz) => {
-                    setQuizzes((prev) => [newQuiz, ...prev]);
-                }}
+                onQuizCreated={(newQuiz) => setQuizzes((prev) => [newQuiz, ...prev])}
             />
-
-            {/* Quiz Questions Preview Modal */}
             <QuizDetailsModal
                 quizId={selectedQuizId}
                 onClose={() => setSelectedQuizId(null)}
