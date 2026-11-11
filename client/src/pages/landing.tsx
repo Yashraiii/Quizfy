@@ -101,7 +101,7 @@ const MockLeaderboard = () => {
     );
 };
 
-// ── Main Landing Page ────────────────────────────────────────────────────────
+
 export const LandingPage = () => {
     const navigate = useNavigate();
 
@@ -124,7 +124,7 @@ export const LandingPage = () => {
         <div className="min-h-screen bg-[#080808] text-white antialiased">
             <Navbar />
 
-            {/* ── Hero ─────────────────────────────────────────────────────── */}
+            
             <section className="relative flex min-h-screen flex-col items-center justify-center px-6 pb-24 pt-32 text-center overflow-hidden">
                 <DottedGlowBackground
                     gap={20}
@@ -178,7 +178,7 @@ export const LandingPage = () => {
 
             
 
-            {/* ── Features ────────────────────────────────────────────────── */}
+            
             <section className="px-6 py-28">
                 <div className="mx-auto max-w-6xl">
                     <div className="mb-16 text-center">
@@ -195,7 +195,7 @@ export const LandingPage = () => {
                 </div>
             </section>
 
-            {/* ── How it works ─────────────────────────────────────────────── */}
+            
             <section className="px-6 py-20">
                 <div className="mx-auto max-w-4xl">
                     <div className="mb-14 text-center">
@@ -216,7 +216,7 @@ export const LandingPage = () => {
 
             
 
-            {/* ── Footer ───────────────────────────────────────────────────── */}
+            
             <footer className="border-t border-white/5 px-6 py-8 text-center">
                 <p className="text-sm text-slate-600">
                     <span className="font-black text-slate-400">Quiz<span className="text-indigo-400">fy</span></span>

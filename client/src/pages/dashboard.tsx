@@ -13,12 +13,11 @@ interface Quiz {
     createdAt: string;
 }
 
-// ── Thin divider ─────────────────────────────────────────────────────────────
 const Divider = () => (
     <div className="bg-linear-to-r from-transparent via-neutral-800 to-transparent h-px w-full" />
 );
 
-// ── Skeleton card ─────────────────────────────────────────────────────────────
+
 const SkeletonCard = () => (
     <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/80 p-6 space-y-3 animate-pulse shadow-lg">
         <div className="h-4 w-2/3 rounded bg-zinc-800" />
@@ -32,7 +31,7 @@ const SkeletonCard = () => (
     </div>
 );
 
-// ── Quiz Card ─────────────────────────────────────────────────────────────────
+
 const QuizCard = ({
     quiz,
     onHost,
@@ -55,7 +54,7 @@ const QuizCard = ({
         <div
             className="group relative rounded-2xl border border-zinc-800/80 bg-zinc-950/85 hover:bg-zinc-900/90 hover:border-zinc-700/80 hover:shadow-2xl hover:shadow-black/70 hover:-translate-y-0.5 transition-all duration-300 p-6 flex flex-col justify-between backdrop-blur-md"
         >
-            {/* Top */}
+            
             <div>
                 <div className="flex items-start justify-between gap-3 mb-3">
                     <h3 className="text-sm font-semibold text-white leading-snug line-clamp-2 flex-1">
@@ -77,7 +76,7 @@ const QuizCard = ({
                 </p>
             </div>
 
-            {/* Bottom action bar */}
+           
             <div className="mt-5 pt-4 border-t border-zinc-800/80 flex items-center justify-between">
                 {isDraft ? (
                     <button
@@ -93,12 +92,12 @@ const QuizCard = ({
                         className="relative group/btn text-xs font-semibold text-neutral-100 bg-zinc-900 hover:bg-white hover:text-black border border-zinc-700/80 rounded-lg px-3.5 py-1.5 transition duration-200 disabled:opacity-50 cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.08)_inset]"
                     >
                         {isStarting ? "Starting..." : "Host Live"}
-                        {/* BottomGradient */}
+                        
                         <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-linear-to-r from-transparent via-neutral-400 to-transparent" />
                     </button>
                 )}
 
-                {/* 3-dot menu */}
+                
                 <div className="relative">
                     <button
                         onClick={(e) => {

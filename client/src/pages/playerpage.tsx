@@ -12,12 +12,15 @@ export const PlayerPage = () => {
     const [hasJoined, setHasJoined] = useState(false);
     const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
     const [timeLeft, setTimeLeft] = useState<number>(0);
+    const [showSummary, setShowSummary] = useState(false);
     const [myAnswersReview, setMyAnswersReview] = useState<{
         questionIndex: number;
         questionText: string;
-        chosenText: string;
-        correctText: string;
+        options: { id: string; text: string }[];
+        selectedOptionIds: string[];
+        correctOptionIds: string[];
         isCorrect: boolean;
+        pointsAwarded: number;
     }[]>([]);
 
     const {
@@ -29,9 +32,74 @@ export const PlayerPage = () => {
         hasAnswered,
         gameOverPodium,
         error,
+        myParticipantId,
         joinAsPlayer,
         submitAnswer,
     } = useGameSocket();
+
+    const SESSION_KEY = `quizfy_player_${roomCode?.toUpperCase()}`;
+
+    // Auto-reconnect if session exists and user was away <= 2 minutes
+    useEffect(() => {
+        if (!roomCode) return;
+        try {
+            const raw = sessionStorage.getItem(SESSION_KEY);
+            if (raw) {
+                const saved = JSON.parse(raw);
+                const lastSeen = saved.lastActive || saved.joinedAt || Date.now();
+                const diffMs = Date.now() - lastSeen;
+
+                if (diffMs <= 2 * 60 * 1000) {
+                    // Reconnect within 2 minutes!
+                    setDisplayName(saved.displayName);
+                    setHasJoined(true);
+                    joinAsPlayer(roomCode, saved.displayName, saved.participantId);
+                } else {
+                    // Off for more than 2 minutes: clear session and ask to rejoin
+                    sessionStorage.removeItem(SESSION_KEY);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to restore player session", e);
+        }
+    }, [roomCode, joinAsPlayer, SESSION_KEY]);
+
+    // Keep session updated with participantId from server
+    useEffect(() => {
+        if (myParticipantId && displayName && roomCode) {
+            sessionStorage.setItem(
+                SESSION_KEY,
+                JSON.stringify({
+                    roomCode: roomCode.toUpperCase(),
+                    displayName,
+                    participantId: myParticipantId,
+                    lastActive: Date.now(),
+                })
+            );
+        }
+    }, [myParticipantId, displayName, roomCode, SESSION_KEY]);
+
+    // Update lastActive timestamp every 10s while joined
+    useEffect(() => {
+        if (!hasJoined) return;
+        const interval = setInterval(() => {
+            const raw = sessionStorage.getItem(SESSION_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                parsed.lastActive = Date.now();
+                sessionStorage.setItem(SESSION_KEY, JSON.stringify(parsed));
+            }
+        }, 10000);
+        return () => clearInterval(interval);
+    }, [hasJoined, SESSION_KEY]);
+
+    // Clear session when room is closed or ended
+    useEffect(() => {
+        if (stage === "ROOM_ENDED") {
+            sessionStorage.removeItem(SESSION_KEY);
+            setHasJoined(false);
+        }
+    }, [stage, SESSION_KEY]);
 
     // Live Synchronized Countdown Timer
     useEffect(() => {
@@ -57,17 +125,13 @@ export const PlayerPage = () => {
     // Record chosen vs correct answer for the final review screen
     useEffect(() => {
         if (stage === "QUESTION_RESULTS" && currentQuestion) {
-            const chosen = currentQuestion.options.filter((o) => selectedOptionIds.includes(o.id));
-            const correct = currentQuestion.options.filter((o) => correctOptionIds.includes(o.id));
-
-            const chosenText = chosen.length > 0 ? chosen.map((c) => c.text).join(", ") : "No answer selected";
-            const correctText = correct.length > 0 ? correct.map((c) => c.text).join(", ") : "None";
-
             const isCorrect =
                 Boolean(myResult?.isCorrect) ||
                 (selectedOptionIds.length > 0 &&
                     selectedOptionIds.length === correctOptionIds.length &&
                     selectedOptionIds.every((id) => correctOptionIds.includes(id)));
+
+            const points = myResult?.pointsAwarded ?? 0;
 
             setMyAnswersReview((prev) => {
                 if (prev.some((item) => item.questionIndex === currentQuestion.questionIndex)) return prev;
@@ -76,9 +140,11 @@ export const PlayerPage = () => {
                     {
                         questionIndex: currentQuestion.questionIndex,
                         questionText: currentQuestion.text,
-                        chosenText,
-                        correctText,
+                        options: currentQuestion.options,
+                        selectedOptionIds: [...selectedOptionIds],
+                        correctOptionIds: [...correctOptionIds],
                         isCorrect,
+                        pointsAwarded: points,
                     },
                 ];
             });
@@ -89,6 +155,15 @@ export const PlayerPage = () => {
         e.preventDefault();
         if (!displayName.trim() || !roomCode) return;
 
+        sessionStorage.setItem(
+            SESSION_KEY,
+            JSON.stringify({
+                roomCode: roomCode.toUpperCase(),
+                displayName: displayName.trim(),
+                joinedAt: Date.now(),
+                lastActive: Date.now(),
+            })
+        );
         joinAsPlayer(roomCode, displayName.trim());
         setHasJoined(true);
     };
@@ -135,10 +210,27 @@ export const PlayerPage = () => {
                 </div>
             )}
 
-            {/* ========================================================================= */}
-            {/* STAGE 0: ENTER NICKNAME                                                   */}
-            {/* ========================================================================= */}
-            {!hasJoined && (
+            
+            {/* ROOM ENDED VIEW */}
+            {stage === "ROOM_ENDED" && (
+                <div className="flex-1 flex flex-col items-center justify-center text-center max-w-sm mx-auto py-12">
+                    <div className="w-12 h-12 rounded-full border border-red-500/30 bg-red-500/10 text-red-400 flex items-center justify-center text-xl mb-4">
+                        ✕
+                    </div>
+                    <h2 className="text-xl font-bold text-white mb-2">Game Ended</h2>
+                    <p className="text-xs text-neutral-400 mb-6">
+                        The host has closed this room or the session has ended.
+                    </p>
+                    <button
+                        onClick={() => navigate("/")}
+                        className="w-full py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-semibold rounded-xl border border-white/8 transition cursor-pointer"
+                    >
+                        Back to Home
+                    </button>
+                </div>
+            )}
+
+            {stage !== "ROOM_ENDED" && !hasJoined && (
                 <div className="flex-1 flex flex-col items-center justify-center max-w-xs mx-auto w-full py-8">
                     <div className="text-center mb-6">
                         <span className="text-xs font-mono text-neutral-600 block mb-1 uppercase tracking-wider">
@@ -168,9 +260,7 @@ export const PlayerPage = () => {
                 </div>
             )}
 
-            {/* ========================================================================= */}
-            {/* STAGE 1: LOBBY                                                            */}
-            {/* ========================================================================= */}
+          
             {hasJoined && (stage === "LOBBY" || stage === "CONNECTING") && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center max-w-sm mx-auto py-10">
                     <div className="w-12 h-12 rounded-full border border-white/10 bg-white/3 flex items-center justify-center text-lg mb-4 animate-pulse">
@@ -184,9 +274,7 @@ export const PlayerPage = () => {
                 </div>
             )}
 
-            {/* ========================================================================= */}
-            {/* STAGE 2: ACTIVE QUESTION                                                  */}
-            {/* ========================================================================= */}
+            
             {hasJoined && stage === "QUESTION" && currentQuestion && (
                 <div className="flex-1 flex flex-col justify-between max-w-3xl sm:max-w-4xl mx-auto w-full py-4 sm:py-6">
                     {/* Top Status & Live Countdown Bar */}
@@ -291,9 +379,6 @@ export const PlayerPage = () => {
                 </div>
             )}
 
-            {/* ========================================================================= */}
-            {/* STAGE 3: QUESTION RESULTS                                                 */}
-            {/* ========================================================================= */}
             {hasJoined && stage === "QUESTION_RESULTS" && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center max-w-sm mx-auto py-8">
                     {myResult ? (
@@ -339,9 +424,6 @@ export const PlayerPage = () => {
                 </div>
             )}
 
-            {/* ========================================================================= */}
-            {/* STAGE 4: LEADERBOARD VIEW                                                 */}
-            {/* ========================================================================= */}
             {hasJoined && stage === "LEADERBOARD" && (
                 <div className="flex-1 flex flex-col items-center justify-center max-w-md mx-auto w-full py-6">
                     <div className="text-center mb-5">
@@ -430,20 +512,138 @@ export const PlayerPage = () => {
                 </div>
             )}
 
-            {/* ========================================================================= */}
-            {/* STAGE 5: GAME OVER & SUMMARY                                              */}
-            {/* ========================================================================= */}
+           
             {hasJoined && stage === "GAME_OVER" && (
-                <div className="flex-1 flex flex-col items-center justify-center text-center max-w-sm mx-auto py-6 w-full">
+                <div className="flex-1 flex flex-col items-center justify-center max-w-sm sm:max-w-2xl mx-auto py-6 w-full">
                     {(() => {
                         const myEntry = gameOverPodium.find((p) => p.displayName === displayName);
                         const myRank = myEntry?.rank || 1;
                         const myScore = myEntry?.score ?? (myResult?.totalScore ?? 0);
+                        const correctCount = myAnswersReview.filter((a) => a.isCorrect).length;
 
+                        if (showSummary) {
+                            return (
+                                <div className="w-full space-y-6">
+                                    {/* Top Navigation & Stats */}
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/6 pb-4">
+                                        <div>
+                                            <h2 className="text-xl font-bold text-white">Quiz Summary</h2>
+                                            <p className="text-xs font-mono text-neutral-400 mt-0.5">
+                                                {correctCount} of {myAnswersReview.length} questions correct · {myScore.toLocaleString()} pts
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowSummary(false)}
+                                            className="self-start sm:self-auto px-3.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-medium text-neutral-200 transition cursor-pointer"
+                                        >
+                                            ← Back to Results
+                                        </button>
+                                    </div>
+
+                                    {/* Questions & Options Breakdown */}
+                                    <div className="space-y-5">
+                                        {myAnswersReview.map((item, qIdx) => (
+                                            <div
+                                                key={item.questionIndex}
+                                                className="rounded-2xl border border-white/8 bg-white/2 p-5 text-left space-y-3"
+                                            >
+                                                {/* Question Header */}
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-xs font-mono text-neutral-400 uppercase tracking-wider">
+                                                        Question {qIdx + 1}
+                                                    </span>
+                                                    <span className={`text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full border ${
+                                                        item.isCorrect
+                                                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                                                            : "bg-red-500/10 border-red-500/30 text-red-400"
+                                                    }`}>
+                                                        {item.isCorrect ? `✓ Correct (+${item.pointsAwarded} pts)` : "✕ Incorrect (0 pts)"}
+                                                    </span>
+                                                </div>
+
+                                                {/* Question Text */}
+                                                <h3 className="text-base font-semibold text-white leading-snug">
+                                                    {item.questionText}
+                                                </h3>
+
+                                                {/* 4 Options with Green BG for correct & Checkmark for user selection */}
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                                                    {item.options.map((opt, optIdx) => {
+                                                        const isCorrect = item.correctOptionIds.includes(opt.id);
+                                                        const isSelected = item.selectedOptionIds.includes(opt.id);
+
+                                                        let containerStyle = "bg-white/2 border-white/6 text-neutral-400";
+                                                        if (isCorrect) {
+                                                            containerStyle = "bg-emerald-500/15 border-emerald-500/50 text-emerald-100 shadow-sm";
+                                                        } else if (isSelected) {
+                                                            containerStyle = "bg-red-500/15 border-red-500/40 text-red-200";
+                                                        }
+
+                                                        return (
+                                                            <div
+                                                                key={opt.id}
+                                                                className={`p-3.5 rounded-xl border flex flex-col justify-between text-xs transition ${containerStyle}`}
+                                                            >
+                                                                <div className="flex justify-between items-center mb-1.5">
+                                                                    <span className="font-mono font-bold text-neutral-400">
+                                                                        {OPTION_LETTERS[optIdx % 4]}
+                                                                    </span>
+                                                                    
+                                                                    {/* Tags for selection and correctness */}
+                                                                    {isSelected && isCorrect && (
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/25 border border-emerald-500/40 font-mono text-[10px] font-bold text-emerald-300">
+                                                                            ✓ Your Choice (Correct)
+                                                                        </span>
+                                                                    )}
+                                                                    {isSelected && !isCorrect && (
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-500/25 border border-red-500/40 font-mono text-[10px] font-bold text-red-300">
+                                                                            ✓ Your Choice (Wrong)
+                                                                        </span>
+                                                                    )}
+                                                                    {!isSelected && isCorrect && (
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">
+                                                                            ✓ Correct Answer
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <span className="font-medium text-sm text-neutral-100">
+                                                                    {opt.text}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-3 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowSummary(false)}
+                                            className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-semibold rounded-xl border border-white/8 transition cursor-pointer"
+                                        >
+                                            ← Back to Results
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate("/dashboard")}
+                                            className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-500/20 transition cursor-pointer"
+                                        >
+                                            Back to Home
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        // Default Game Over View (Standings & View Summary button)
                         return (
                             <div className="w-full space-y-6">
                                 <div>
-                                    <h2 className="text-xl font-bold text-white">Quiz Over</h2>
+                                    <h2 className="text-2xl font-bold text-white">Quiz Over</h2>
                                     <p className="text-xs font-mono text-neutral-500 mt-1">
                                         Rank #{myRank} of {gameOverPodium.length || 1} players
                                     </p>
@@ -481,49 +681,26 @@ export const PlayerPage = () => {
                                     </div>
                                 )}
 
-                                {/* Answer Review */}
-                                {myAnswersReview.length > 0 && (
-                                    <div className="text-left w-full space-y-2.5">
-                                        <span className="text-[10px] font-mono text-neutral-600 uppercase tracking-widest block">
-                                            Answer Review
-                                        </span>
-                                        {myAnswersReview.map((item) => (
-                                            <div
-                                                key={item.questionIndex}
-                                                className="rounded-xl border border-white/6 bg-white/2 p-3.5 space-y-1.5 text-xs"
-                                            >
-                                                <div className="flex justify-between items-start gap-2">
-                                                    <p className="font-medium text-neutral-200 leading-snug">
-                                                        Q{item.questionIndex + 1}. {item.questionText}
-                                                    </p>
-                                                    <span className={`shrink-0 font-bold ${
-                                                        item.isCorrect ? "text-neutral-300" : "text-neutral-600"
-                                                    }`}>
-                                                        {item.isCorrect ? "✓" : "✕"}
-                                                    </span>
-                                                </div>
-                                                <div className="text-neutral-500 space-y-0.5">
-                                                    <p>
-                                                        Your answer: <span className={item.isCorrect ? "text-neutral-300" : "text-neutral-500 line-through"}>{item.chosenText}</span>
-                                                    </p>
-                                                    {!item.isCorrect && (
-                                                        <p className="text-neutral-400">
-                                                            Correct: <span>{item.correctText}</span>
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                {/* Action Buttons */}
+                                <div className="space-y-2.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowSummary(true)}
+                                        className="relative group/btn w-full py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 text-xs font-semibold rounded-xl border border-white/10 transition cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset] flex items-center justify-center gap-2"
+                                    >
+                                        <span>📋 View Summary</span>
+                                        <span className="text-neutral-400">({correctCount}/{myAnswersReview.length} correct) →</span>
+                                        <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-linear-to-r from-transparent via-neutral-500 to-transparent" />
+                                    </button>
 
-                                <button
-                                    onClick={() => navigate("/dashboard")}
-                                    className="relative group/btn w-full py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-semibold rounded-xl border border-white/8 transition cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
-                                >
-                                    Back to Home
-                                    <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-linear-to-r from-transparent via-neutral-500 to-transparent" />
-                                </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate("/dashboard")}
+                                        className="w-full py-2.5 bg-transparent hover:bg-white/4 text-neutral-400 hover:text-white text-xs font-medium rounded-xl border border-white/6 transition cursor-pointer"
+                                    >
+                                        Back to Home
+                                    </button>
+                                </div>
                             </div>
                         );
                     })()}

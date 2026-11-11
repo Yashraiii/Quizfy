@@ -6,7 +6,7 @@ import { Label } from "../components/ui/label";
 import { DottedGlowBackground } from "../components/ui/dotted-glow-background";
 import { cn } from "../lib/utils";
 
-// ── Aceternity BottomGradient ─────────────────────────────────────────────
+
 const BottomGradient = () => (
     <>
         <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-linear-to-r from-transparent via-indigo-500 to-transparent" />
@@ -14,7 +14,7 @@ const BottomGradient = () => (
     </>
 );
 
-// ── Aceternity LabelInputContainer ────────────────────────────────────────
+
 const LabelInputContainer = ({
     children,
     className,
@@ -27,7 +27,6 @@ const LabelInputContainer = ({
     </div>
 );
 
-// ── Signup Page ────────────────────────────────────────────────────────────
 export const Signup = () => {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");

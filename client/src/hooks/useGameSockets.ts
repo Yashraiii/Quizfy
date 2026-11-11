@@ -35,7 +35,8 @@ export type GameStage =
     | "QUESTION"
     | "QUESTION_RESULTS"
     | "LEADERBOARD"
-    | "GAME_OVER";
+    | "GAME_OVER"
+    | "ROOM_ENDED";
 
 export const useGameSocket = () => {
     const wsRef = useRef<WebSocket | null>(null);
@@ -52,6 +53,8 @@ export const useGameSocket = () => {
     const [myResult, setMyResult] = useState<AnswerResult | null>(null);
     const [hasAnswered, setHasAnswered] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isGameStarted, setIsGameStarted] = useState(false);
+    const [myParticipantId, setMyParticipantId] = useState<string | null>(null);
 
     // Connect to WebSocket server on mount
     useEffect(() => {
@@ -73,7 +76,14 @@ export const useGameSocket = () => {
                     case "Host_connected":
                     case "HOST_CONNECTED":
                         setQuizTitle(messagePayload?.quizTitle || "");
-                        setStage("LOBBY");
+                        if (messagePayload?.isStarted) {
+                            setIsGameStarted(true);
+                            if (messagePayload?.stage === "QUESTION") {
+                                setStage("QUESTION");
+                            }
+                        } else {
+                            setStage("LOBBY");
+                        }
                         break;
 
                     // Player joined (Host receives this)
@@ -90,7 +100,20 @@ export const useGameSocket = () => {
 
                     // Player self joined room
                     case "JOINED_ROOM":
-                        setStage("LOBBY");
+                        if (messagePayload?.participantId) {
+                            setMyParticipantId(messagePayload.participantId);
+                        }
+                        setStage((prev) => (prev === "CONNECTING" ? "LOBBY" : prev));
+                        break;
+
+                    case "ROOM_ENDED":
+                        setError(messagePayload?.message || data?.message || "The host has ended this game.");
+                        setStage("ROOM_ENDED");
+                        break;
+
+                    case "SESSION_EXPIRED":
+                        setError(data?.message || "Session expired. Please rejoin.");
+                        setStage("CONNECTING");
                         break;
 
                     // New Question starts
@@ -174,22 +197,23 @@ export const useGameSocket = () => {
     }, []);
 
     // 2. Join room as Player
-    const joinAsPlayer = useCallback((roomCode: string, displayName: string) => {
+    const joinAsPlayer = useCallback((roomCode: string, displayName: string, participantId?: string) => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({
                 type: "JOIN_ROOM",
                 payload: {
                     roomCode,
                     displayName,
+                    participantId,
                     isHost: false,
                 },
             }));
         } else {
-            setTimeout(() => joinAsPlayer(roomCode, displayName), 200);
+            setTimeout(() => joinAsPlayer(roomCode, displayName, participantId), 200);
         }
     }, []);
 
-    // 3. Host starts quiz
+    // 3. Host starts or resumes quiz
     const startQuiz = useCallback(() => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({
@@ -199,7 +223,17 @@ export const useGameSocket = () => {
         }
     }, []);
 
-    // 4. Player submits answer
+    // 4. Host ends quiz and deletes room
+    const endQuiz = useCallback(() => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+                type: "END_QUIZ",
+                payload: {},
+            }));
+        }
+    }, []);
+
+    // 5. Player submits answer
     const submitAnswer = useCallback((selectedOptionIds: string[]) => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({
@@ -224,9 +258,12 @@ export const useGameSocket = () => {
         myResult,
         hasAnswered,
         error,
+        isGameStarted,
+        myParticipantId,
         joinAsHost,
         joinAsPlayer,
         startQuiz,
+        endQuiz,
         submitAnswer,
     };
 };

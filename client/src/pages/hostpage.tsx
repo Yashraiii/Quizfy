@@ -21,8 +21,10 @@ export const HostPage = () => {
         leaderboard,
         gameOverPodium,
         error,
+        isGameStarted,
         joinAsHost,
         startQuiz,
+        endQuiz,
     } = useGameSocket();
 
     const [timeLeft, setTimeLeft] = useState<number>(0);
@@ -46,6 +48,7 @@ export const HostPage = () => {
             joinAsHost(roomCode);
         }
     }, [roomCode, joinAsHost]);
+
     const handleCopy = async () => {
         if (!roomCode) return;
         try {
@@ -54,6 +57,13 @@ export const HostPage = () => {
             setTimeout(() => setCopied(false), 2000);
         } catch (err) {
             console.error("Failed to copy text: ", err);
+        }
+    };
+
+    const handleEndGame = () => {
+        if (window.confirm("Are you sure you want to end this game? All participants will be moved out and this room will be closed.")) {
+            endQuiz();
+            navigate("/dashboard");
         }
     };
 
@@ -74,8 +84,8 @@ export const HostPage = () => {
 
                 <div className="flex items-center space-x-4">
                     <button
-                        onClick={() => navigate("/dashboard")}
-                       className="relative group/btn text-xs font-semibold text-neutral-200 bg-neutral-800 hover:bg-white hover:text-black border border-white/8 rounded-lg px-3 py-1.5 transition duration-200 disabled:opacity-50 cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
+                        onClick={handleEndGame}
+                        className="relative group/btn text-xs font-semibold text-red-300 bg-red-500/10 hover:bg-red-600 hover:text-white border border-red-500/30 rounded-lg px-3 py-1.5 transition duration-200 cursor-pointer shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset]"
                     >
                         End game
                     </button>
@@ -128,9 +138,9 @@ export const HostPage = () => {
                         <button
                             onClick={startQuiz}
                             disabled={players.length === 0}
-                            className="relative group/btn px-8 py-3 bg-neutral-800  disabled:opacity-40 text-neutral-200 hover:bg-white hover:text-black font-semibold text-sm rounded-xl border border-white/8 shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset] transition cursor-pointer"
+                            className="relative group/btn px-8 py-3 bg-neutral-800 disabled:opacity-40 text-neutral-200 hover:bg-white hover:text-black font-semibold text-sm rounded-xl border border-white/8 shadow-[0px_1px_0px_0px_rgba(255,255,255,0.06)_inset] transition cursor-pointer"
                         >
-                            Start Game →
+                            {isGameStarted ? "Resume Game →" : "Start Game →"}
                             <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-linear-to-r from-transparent via-neutral-500 to-transparent" />
                         </button>
                     </div>

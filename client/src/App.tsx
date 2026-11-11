@@ -24,12 +24,11 @@ function App() {
     <SmoothScroll>
       <BrowserRouter>
         <Routes>
-          {/* Pages WITHOUT Grid Background */}
+          
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
 
-          {/* Pages WITH Grid Background */}
           <Route
             path="/dashboard"
             element={
